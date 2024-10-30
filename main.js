@@ -563,7 +563,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const warrior = {
     weapons: [sword],
     attrs: {
-      "health": [100, baseIncreaseWithLevel(10)],
+      "health": [50, baseIncreaseWithLevel(5)],
       "speed": [45, baseIncreaseWithLevel(0.2)],
       "healthRegen": [0.1, baseIncreaseWithLevel(0.025)],
       "pickupDistance": [50],
@@ -654,7 +654,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           player.weapons.push(initializeWeapon(weapon));
         }
       },
-      maxCount: weapon.levels.length,
+      maxCount: weapon.levels.length - 1,
     };
   };
 
@@ -670,13 +670,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       name: "Speed base",
       description: "+1 base speed",
       apply: baseAttr("speed", 1),
-      maxCount: 5,
-    },
-    {
-      name: "Heal",
-      description: "+25 health",
-      condition: () => player.health + 25 < player.attrs.health.value,
-      apply: () => (player.health += 25),
       maxCount: 5,
     },
     {
@@ -937,7 +930,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   });
 
   const boxBoss = defineEnemy({
-    health: 500,
+    health: 1000,
     speed: 30,
     damage: 20,
     experience: 20,
@@ -971,7 +964,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   });
 
   const triangleBoss = defineEnemy({
-    health: 1000,
+    health: 3000,
     speed: 35,
     damage: 30,
     experience: 50,
@@ -1006,7 +999,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   });
 
   const circleBoss = defineEnemy({
-    health: 1000,
+    health: 5000,
     speed: 40,
     damage: 20,
     experience: 4,
@@ -1017,7 +1010,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   });
 
   const finalBoss = defineEnemy({
-    health: 10000,
+    health: 12000,
     speed: 55,
     damage: 50,
     experience: 0,
