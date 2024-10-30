@@ -61,7 +61,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    *
    * @param {number} a angle in radians
    */
-  const formatAngle = (a) => formatNumber(a * (180 / PI));
+  const formatAngle = (a) => formatNumber(a * (180 / PI)) + "°";
 
   /**
    * Format number with fixed decimal places
@@ -113,10 +113,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
      * @param {number} w
      * @param {number} h
      * @param {string} color
+     * @param {boolean} [stroke=false]
      */
-    rect(x, y, w, h, color) {
-      ctx.fillStyle = color;
-      ctx.fillRect(x, y, w, h);
+    rect(x, y, w, h, color, stroke) {
+      ctx[stroke ? "strokeStyle" : "fillStyle"] = color;
+      ctx[stroke ? "strokeRect" : "fillRect"](x, y, w, h);
     },
     /**
      * @param {string | CanvasGradient} style
@@ -191,7 +192,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     const tableY = y;
     let rowWidth = w / 2;
 
-    if (table.length * rowHeight < h) {
+    if ((table.length - 1) * rowHeight <= h) {
       x += w / 4;
     }
 
@@ -474,7 +475,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     stats: (_, attrs) => [
       [`damage`, formatNumber(attrs.damage)],
       [`range`, formatNumber(attrs.range)],
-      [`angle`, `${formatAngle(attrs.angle)}°`],
+      [`angle`, formatAngle(attrs.angle)],
     ],
   };
 
@@ -631,7 +632,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           if (nextLevel[key] !== currentLevel[key]) {
             const diff = nextLevel[key] - currentLevel[key];
             const str =
-              key === "angle" ? `${formatAngle(diff)}°` : formatNumber(diff);
+              key === "angle" ? formatAngle(diff) : formatNumber(diff);
 
             result.push(`+${str} ${key}`);
           }
@@ -1264,7 +1265,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       );
     }
 
-    renderStatsTable(x, y, w, height - y - 20, stats);
+    renderStatsTable(x, y, w, height - y - 40, stats);
   };
 
   /**
@@ -1376,25 +1377,31 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           const x = 20;
           const y = 50 + i * 50;
 
-          ctx.textAlign = left;
-          ctx.textBaseline = top;
-          ctx.fillStyle = i === manager.selectedUpgradeIndex ? "#333" : "#222";
-          ctx.fillRect(x, y, width - 40, 40);
+          draw.rect(
+            x,
+            y,
+            width - 40,
+            40,
+            i === manager.selectedUpgradeIndex ? "#333" : "#222",
+          );
 
-          ctx.strokeStyle =
-            i === manager.selectedUpgradeIndex ? "#aa3" : "#444";
-          ctx.strokeRect(x, y, width - 40, 40);
+          draw.rect(
+            x,
+            y,
+            width - 40,
+            40,
+            i === manager.selectedUpgradeIndex ? "#aa3" : "#444",
+            true,
+          );
 
-          ctx.fillStyle = "#fff";
-          ctx.fillText(upgrade.name, x + 5, y + 5);
-
-          ctx.fillStyle = "#ccc";
-          ctx.fillText(
+          draw.text(x + 5, y + 5, upgrade.name, "#fff");
+          draw.text(
+            x + 5,
+            y + 22,
             typeof upgrade.description === "function"
               ? upgrade.description()
               : upgrade.description,
-            x + 5,
-            y + 22,
+            "#ccc",
           );
 
           draw.text(
@@ -1413,8 +1420,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       case MANAGER_STATES.PAUSED: {
         draw.overlay();
-        draw.text(w2, 100, "PAUSED", "#fff", center, middle);
-        renderPlayerStatsUi(20, 110, width - 40);
+        draw.text(w2, 40, "PAUSED", "#fff", center, middle);
+        renderPlayerStatsUi(20, 80, width - 40);
         break;
       }
 
@@ -1494,12 +1501,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const gameLogicTick = (deltaTime) => {
     managerTick(deltaTime);
 
-    switch (manager.state) {
-      case MANAGER_STATES.RUNNING:
-        enemiesTick(deltaTime);
-        pickupsTick(deltaTime);
-        playerTick(deltaTime);
-        break;
+    if (manager.state === MANAGER_STATES.RUNNING) {
+      enemiesTick(deltaTime);
+      pickupsTick(deltaTime);
+      playerTick(deltaTime);
     }
 
     inputTick();
