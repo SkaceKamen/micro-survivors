@@ -125,7 +125,7 @@ const createPlayer = (type = 0) => ({
     health: createAttribute("health", [baseIncreaseWithLevel(10)]),
     meleeAngle: createAttribute("meleeAngle"),
     meleeDistance: createAttribute("meleeDistance"),
-    meleeDamage: createAttribute("meleeDamage", [baseIncreaseWithLevel(2)]),
+    meleeDamage: createAttribute("meleeDamage", [baseIncreaseWithLevel(0.5)]),
     meleeTimeout: createAttribute("meleeTimeout"),
     pickupDistance: createAttribute("pickupDistance"),
   },
