@@ -141,14 +141,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {Array<{ weight: number; val: T }>} arr
    * @returns
    */
-  function weightedIndexChoice(arr) {
+  const weightedIndexChoice = (arr) => {
     const totalWeight = arr.map((v) => v.weight).reduce((x, y) => x + y);
     const val = random() * totalWeight;
     for (let i = 0, cur = 0; ; i++) {
       cur += arr[i].weight;
       if (val <= cur) return i;
     }
-  }
+  };
 
   /**
    * @template A
