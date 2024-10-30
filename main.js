@@ -1,4 +1,66 @@
+// @ts-check
 "use strict";
+
+/*
+  TODO:
+   - add waves until 10 minutes mark, add final boss there
+   - add pickup weapons:
+    - saw blades - rotates around player
+    - barbed wire - slows & damages enemies around player
+    - shuriken - ranged attack in random direction
+    - lightning - chain lightning attack?
+   - add armor and relevant upgrades?
+   - endgame - when player kills final boss, they win
+   - more enemies?
+    - enemy with ranged attack?
+    - enemy with unusual movement pattern?
+   - map events?
+    - enemy spawn in a shape around player?
+   - starting screen?
+*/
+
+// #region Utility functions
+
+/**
+ * @param {number} seconds
+ * @returns {string}
+ */
+function formatTime(seconds) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
+    .toString()
+    .padStart(2, "0")}`;
+}
+
+/**
+ * @param {string} message
+ */
+const raise = (message) => {
+  throw new Error(message);
+};
+
+/**
+ * @template A
+ * @param {A[]} array
+ * @returns {A[]}
+ */
+function shuffleArray(array) {
+  for (let i = array.length - 1; i >= 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+/**
+ * @template A
+ * @param {A[]} a
+ * @returns {A}
+ */
+const pickRandom = (a) => a[Math.round(Math.random() * (a.length - 1))];
+
+// #endregion
 
 const width = 400;
 const height = 400;
@@ -7,8 +69,9 @@ const canvas = document.createElement("canvas");
 canvas.width = width;
 canvas.height = height;
 
-const ctx = canvas.getContext("2d");
+const ctx = canvas.getContext("2d") ?? raise("Failed to get 2d context");
 
+/** @type {Record<string, keyof typeof justPressedInput>} */
 const inputMapping = {
   arrowup: "up",
   arrowdown: "down",
@@ -23,13 +86,25 @@ const inputMapping = {
   p: "pause",
 };
 
-function shuffleArray(array) {
-  for (let i = array.length - 1; i >= 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
+const input = {
+  up: false,
+  down: false,
+  left: false,
+  right: false,
+  enter: false,
+  pause: false,
+  targetX: 0,
+  targetY: 0,
+};
+
+const justPressedInput = {
+  up: false,
+  down: false,
+  left: false,
+  right: false,
+  enter: false,
+  pause: false,
+};
 
 /**
  * @param {KeyboardEvent} event
@@ -63,12 +138,39 @@ const playerTypes = [
   },
 ];
 
+/** @typedef {(player: Player) => void} UpgradeApply */
+/** @typedef {(player: Player) => boolean} UpgradeCondition */
+
+/**
+ * @typedef Upgrade
+ * @property {string} name
+ * @property {string} description
+ * @property {number} weight
+ * @property {UpgradeApply} apply
+ * @property {number} maxCount
+ * @property {UpgradeCondition} [condition]
+ */
+
+/** @type {UpgradeCondition} */
 const hasMelee = (player) => player.attrs.meleeDamage.value > 0;
+
+/**
+ * @param {keyof Player['attrs']} attr
+ * @param {number} change
+ * @returns {UpgradeApply}
+ */
 const baseAttr = (attr, change) => (player) =>
   player.attrs[attr].push("base", (_, value) => value + change);
+
+/**
+ * @param {keyof Player['attrs']} attr
+ * @param {number} change
+ * @returns {UpgradeApply}
+ */
 const multiplyAttr = (attr, change) => (player) =>
   player.attrs[attr].push("multiplier", (_, value) => value * change);
 
+/** @type {Upgrade[]} */
 const upgrades = [
   {
     name: "Speed boost",
@@ -152,9 +254,9 @@ const upgrades = [
   },
   {
     name: "Regen",
-    description: "+0.05 health regen",
+    description: "+0.1/s health regen",
     weight: 1,
-    apply: baseAttr("healthRegen", 0.05),
+    apply: baseAttr("healthRegen", 0.1),
     maxCount: 5,
   },
   {
@@ -173,6 +275,9 @@ const upgrades = [
   },
 ];
 
+/** @typedef {(player: any, value: number, attribute: string) => number} AttributeEnhancer */
+/** @typedef {{ base: AttributeEnhancer[]; multiplier: AttributeEnhancer[]; playerLevel: number; value: number; }} AttributeCache */
+
 /**
  * @param {string} attribute
  * @param {any[]} [base]
@@ -182,13 +287,14 @@ const createAttribute = (attribute, base = [], multiplier = []) => ({
   /**
    * Add a new attribute modifier function
    * @param {'base' | 'multiplier'} type
-   * @param {(player, value, attribute) => number} fn
+   * @param {(player: Player, value: number, attribute: string) => number} fn
    */
   push(type, fn) {
     this[type] = [...this[type], fn];
   },
 
   // Base attribute value modifiers
+  /** @type {AttributeEnhancer[]} */
   base: [
     // Default attribute value comes from the player type
     (player, value) => value + playerTypes[player.type][attribute],
@@ -196,8 +302,10 @@ const createAttribute = (attribute, base = [], multiplier = []) => ({
   ],
 
   // Multiplier attribute value modifiers
+  /** @type {AttributeEnhancer[]} */
   multiplier: [...multiplier],
 
+  /** @type { AttributeCache | null} */
   $cached: null,
   get value() {
     if (
@@ -223,9 +331,19 @@ const createAttribute = (attribute, base = [], multiplier = []) => ({
   },
 });
 
+/** @typedef {ReturnType<typeof createAttribute>} PlayerAttribute */
+
+/**
+ * @param {number} increasePerLevel
+ * @returns {AttributeEnhancer}
+ */
 const baseIncreaseWithLevel = (increasePerLevel) => (player, value) =>
   value + player.level * increasePerLevel;
 
+/**
+ * @param {number} value
+ * @returns {AttributeEnhancer}
+ */
 const baseValue = (value) => () => value;
 
 const createPlayer = (type = 0) => ({
@@ -257,30 +375,13 @@ const createPlayer = (type = 0) => ({
   },
 
   // Already applied upgrades, index in upgrades array
+  /** @type {Upgrade[]} */
   upgrades: [],
 });
 
+/** @typedef {ReturnType<typeof createPlayer>} Player */
+
 let player = createPlayer();
-
-const input = {
-  up: false,
-  down: false,
-  left: false,
-  right: false,
-  enter: false,
-  pause: false,
-  targetX: 0,
-  targetY: 0,
-};
-
-const justPressedInput = {
-  up: false,
-  down: false,
-  left: false,
-  right: false,
-  enter: false,
-  pause: false,
-};
 
 const MANAGER_STATES = {
   RUNNING: 0,
@@ -295,6 +396,7 @@ const startingManagerState = {
   damageDone: 0,
   kills: 0,
   spawnTimeout: 0,
+  /** @type {Upgrade[]} */
   upgrades: [],
   selectedUpgradeIndex: 0,
 };
@@ -305,14 +407,40 @@ const manager = {
 };
 
 const draw = {
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} w
+   * @param {number} h
+   * @param {string} color
+   */
   rect(x, y, w, h, color) {
     ctx.fillStyle = color;
     ctx.fillRect(x, y, w, h);
   },
+  /**
+   * @param {string} color
+   */
+  overlay(color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, width, height);
+  },
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} size
+   * @param {string} color
+   */
   box(x, y, size, color) {
     ctx.fillStyle = color;
     ctx.fillRect(x - size / 2, y - size / 2, size, size);
   },
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} size
+   * @param {string} color
+   */
   triangle(x, y, size, color) {
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -321,12 +449,26 @@ const draw = {
     ctx.lineTo(x + size / 2, y + size / 2);
     ctx.fill();
   },
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {string} text
+   * @param {string} color
+   * @param {CanvasTextAlign} [hAlign="left"]
+   * @param {CanvasTextBaseline} [vAlign="top"]
+   */
   text(x, y, text, color, hAlign = "left", vAlign = "top") {
     ctx.fillStyle = color;
     ctx.textAlign = hAlign;
     ctx.textBaseline = vAlign;
     ctx.fillText(text, x, y);
   },
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} radius
+   * @param {string} color
+   */
   circle(x, y, radius, color) {
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -335,58 +477,121 @@ const draw = {
   },
 };
 
-/** @typedef {{ health: number; speed: number; damage: number; damageTick: number; experience: number; }} EnemyType */
-/** @type {EnemyType[]} */
-const enemyTypes = [
-  // Base square enemy
-  {
-    health: 10,
-    speed: 20,
-    damage: 1,
-    damageTick: 1,
-    experience: 1,
-    render: (x, y, hit) => draw.box(x, y, 10, hit ? "#fff" : "#aaa"),
-  },
-  // Triangles
-  {
-    health: 20,
-    speed: 21,
-    damage: 2,
-    damageTick: 1,
-    experience: 2,
-    render: (x, y, hit) => draw.triangle(x, y, 10, hit ? "#fff" : "#999"),
-  },
-  // Square boss
-  {
-    health: 500,
-    speed: 20,
-    damage: 10,
-    damageTick: 1,
-    boss: true,
-    experience: 20,
-    render: (x, y, hit) => draw.box(x, y, 20, hit ? "#fff" : "#faa"),
-  },
-  // Circle
-  {
-    health: 25,
-    speed: 25,
-    damage: 1,
-    damageTick: 1,
-    experience: 3,
-    render: (x, y, hit) => draw.circle(x, y, 5, hit ? "#fff" : "#999"),
-  },
-];
+/** @typedef {{ health: number; speed: number; damage: number; damageTick: number; experience: number; boss?: boolean; render: (x: number, y: number, hit: boolean) => void}} EnemyType */
+/** @param {EnemyType} type */
+const createEnemy = (type) => type;
 
+const boxLevel1 = createEnemy({
+  health: 10,
+  speed: 20,
+  damage: 1,
+  damageTick: 1,
+  experience: 1,
+  render: (x, y, hit) => draw.box(x, y, 10, hit ? "#fff" : "#aaa"),
+});
+
+const boxLevel2 = createEnemy({
+  health: 50,
+  speed: 20,
+  damage: 1,
+  damageTick: 1,
+  experience: 2,
+  render: (x, y, hit) => {
+    draw.box(x + 1, y + 1, 10, hit ? "#fff" : "#faa");
+    draw.box(x - 2, y - 1, 10, hit ? "#fff" : "#4aa");
+  },
+});
+
+const boxBoss = createEnemy({
+  health: 500,
+  speed: 20,
+  damage: 10,
+  damageTick: 1,
+  experience: 20,
+  render: (x, y, hit) => draw.box(x, y, 20, hit ? "#fff" : "#faa"),
+  boss: true,
+});
+
+const triangleLevel1 = createEnemy({
+  health: 20,
+  speed: 21,
+  damage: 2,
+  damageTick: 1,
+  experience: 2,
+  render: (x, y, hit) => draw.triangle(x, y, 10, hit ? "#fff" : "#999"),
+});
+
+const triangleLevel2 = createEnemy({
+  health: 40,
+  speed: 25,
+  damage: 2,
+  damageTick: 1,
+  experience: 3,
+  render: (x, y, hit) => draw.triangle(x, y, 10, hit ? "#fff" : "#4aa"),
+});
+
+const triangleBoss = createEnemy({
+  health: 1000,
+  speed: 25,
+  damage: 10,
+  damageTick: 1,
+  experience: 50,
+  render: (x, y, hit) => draw.triangle(x, y, 20, hit ? "#fff" : "#faa"),
+});
+
+const circleLevel1 = createEnemy({
+  health: 10,
+  speed: 30,
+  damage: 1,
+  damageTick: 1,
+  experience: 3,
+  render: (x, y, hit) => draw.circle(x, y, 5, hit ? "#fff" : "#999"),
+});
+
+/**
+ * @typedef SpawnRate
+ * @property {number} from
+ * @property {EnemyType[]} types
+ * @property {number} rate
+ * @property {EnemyType} [boss]
+ */
+
+/** @type {SpawnRate[]} */
 const spawnRates = [
-  { from: 0, types: [0], rate: 1 },
-  { from: 30, types: [1, 0], rate: 1 },
-  { from: 40, types: [1, 0], rate: 0.5 },
-  { from: 60, types: [1], rate: 0.5, boss: 2 },
-  { from: 90, types: [1, 3], rate: 0.7 },
-  { from: 120, types: [1, 3], rate: 0.5 },
+  { from: 0, types: [boxLevel1], rate: 1 },
+  { from: 30, types: [boxLevel1, triangleLevel1], rate: 1 },
+  { from: 40, types: [boxLevel1, triangleLevel1], rate: 0.4 },
+  { from: 60, types: [triangleLevel1], rate: 0.5, boss: boxBoss },
+  { from: 90, types: [triangleLevel1, circleLevel1], rate: 0.6 },
+  { from: 120, types: [triangleLevel1, circleLevel1], rate: 0.4 },
+  { from: 150, types: [boxLevel2], rate: 0.6 },
+  { from: 160, types: [boxLevel2, triangleLevel2, circleLevel1], rate: 0.5 },
+  {
+    from: 180,
+    types: [triangleLevel2, circleLevel1],
+    boss: triangleBoss,
+    rate: 0.5,
+  },
 ];
 
-/** @typedef {{ x: number; y: number; type: number; health: number; hitTick: number; damageTick: number; boss: boolean; pushBackX: number; pushBackY: number; }} Enemy */
+/**
+ * @param {number} x
+ * @param {number} y
+ * @param {EnemyType} type
+ */
+const initializeEnemy = (x, y, type) => ({
+  x,
+  y,
+  type,
+  health: type.health,
+  damageTick: 0,
+  pushBackX: 0,
+  pushBackY: 0,
+  hitTick: 0,
+  boss: !!type.boss,
+});
+
+/** @typedef {ReturnType<typeof initializeEnemy>} Enemy */
 /** @type {Enemy[]} */
 const enemies = [];
 
@@ -395,7 +600,7 @@ const PICKUP_TYPES = {
   EXPERIENCE: 1,
 };
 
-/** @type {Array<{ x: number; y: number; type: number; health: number; experience: number; }>} */
+/** @type {Array<{ x: number; y: number; type: number; health?: number; experience?: number; }>} */
 const pickups = [];
 
 function renderPlayer() {
@@ -427,13 +632,12 @@ function renderPlayer() {
     ctx.fill();
   }
 
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(player.x - 5, player.y - 5, 10, 10);
+  draw.rect(player.x - 5, player.y - 5, 10, 10, "#fff");
 }
 
 function renderEnemies() {
   for (const enemy of enemies) {
-    const type = enemyTypes[enemy.type];
+    const type = enemy.type;
     type.render(enemy.x, enemy.y, enemy.hitTick > 0);
 
     if (type.boss) {
@@ -472,7 +676,7 @@ function renderPlayerStatsUi(x, y, w) {
   for (let i = 0; i < stats.length; i++) {
     const [name, value] = stats[i];
     draw.text(x, y + i * 15, `${name}:`, "#aaa");
-    draw.text(x + w, y + i * 15, value, "#fff", "right");
+    draw.text(x + w, y + i * 15, `${value}`, "#fff", "right");
   }
 }
 
@@ -517,6 +721,8 @@ function renderUI() {
   draw.text(25, 2, "level", "#666", "center", "top");
   draw.text(25, 18, `${player.level + 1}`, "#fff", "center", "top");
 
+  draw.text(width / 2, 35, formatTime(manager.runtime), "#fff", "center");
+
   if (manager.state === MANAGER_STATES.DEAD) {
     let y = 100;
 
@@ -526,7 +732,7 @@ function renderUI() {
     y += 30;
 
     const stats = [
-      [`Survived for`, `${Math.floor(manager.runtime)}s`],
+      [`Survived for`, formatTime(manager.runtime)],
       [`Level`, `${player.level + 1}`],
       [`Damage done`, `${manager.damageDone}`],
       [`DPS`, `${(manager.damageDone / manager.runtime).toFixed(2)}`],
@@ -545,19 +751,14 @@ function renderUI() {
   }
 
   if (manager.state === MANAGER_STATES.PICKING_UPGRADE) {
-    ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
-    ctx.fillRect(0, 0, width, height);
-    ctx.fillStyle = "#fff";
-    ctx.textBaseline = "top";
-    ctx.textAlign = "center";
-    ctx.fillText("LEVEL UP", width / 2, 10);
+    draw.overlay("rgba(0, 0, 0, 0.9)");
+    draw.text(width / 2, 10, "LEVEL UP", "#fff", "center", "top");
 
     for (let i = 0; i < manager.upgrades.length; i++) {
-      const upgrade = manager.upgrades[i][1];
-      const upgradeIndex = manager.upgrades[i][0];
+      const upgrade = manager.upgrades[i];
       // TODO: Cache this somehow?
       const alreadyApplied = player.upgrades.filter(
-        (u) => u === upgradeIndex
+        (u) => u === upgrade
       ).length;
 
       const x = 20;
@@ -622,7 +823,7 @@ function renderOverlays() {
     const pickupOverlayGradient = ctx.createRadialGradient(
       width / 2,
       height / 2,
-      120,
+      130,
       width / 2,
       height / 2,
       width / 2
@@ -651,6 +852,9 @@ function render() {
   renderUI();
 }
 
+/**
+ * @param {number} deltaTime
+ */
 function gameLogicTick(deltaTime) {
   switch (manager.state) {
     case MANAGER_STATES.RUNNING:
@@ -669,12 +873,15 @@ function gameLogicTick(deltaTime) {
   inputTick();
 }
 
+/**
+ * @param {number} deltaTime
+ */
 function enemiesTick(deltaTime) {
   let index = 0;
   let enemiesToRemove = [];
 
   for (const enemy of enemies) {
-    const type = enemyTypes[enemy.type];
+    const type = enemy.type;
 
     if (enemy.health <= 0) {
       pickups.push({
@@ -753,23 +960,27 @@ function enemiesTick(deltaTime) {
   }
 }
 
+/**
+ * @param {EnemyType} type
+ */
 function spawnEnemy(type) {
   const angle = Math.random() * Math.PI * 2;
-  const distance = Math.max(width, height) / 2 + Math.random() * 100;
+  const side = Math.max(width, height) / 2;
+  const minDistance = Math.sqrt(side * side * 2);
+  const distance = minDistance + Math.random() * 15;
 
-  enemies.push({
-    x: player.x + Math.cos(angle) * distance,
-    y: player.y + Math.sin(angle) * distance,
-    type: type,
-    health: enemyTypes[type].health,
-    damageTick: 0,
-    pushBackX: 0,
-    pushBackY: 0,
-  });
+  enemies.push(
+    initializeEnemy(
+      player.x + Math.cos(angle) * distance,
+      player.y + Math.sin(angle) * distance,
+      type
+    )
+  );
 }
 
-const pickRandom = (a) => a[Math.round(Math.random() * (a.length - 1))];
-
+/**
+ * @param {number} deltaTime
+ */
 function managerTick(deltaTime) {
   switch (manager.state) {
     case MANAGER_STATES.RUNNING: {
@@ -842,8 +1053,8 @@ function managerTick(deltaTime) {
 
       if (justPressedInput.enter) {
         const upgrade = manager.upgrades[manager.selectedUpgradeIndex];
-        upgrade[1].apply(player);
-        player.upgrades.push(upgrade[0]);
+        upgrade.apply(player);
+        player.upgrades.push(upgrade);
         manager.state = MANAGER_STATES.RUNNING;
       }
 
@@ -864,6 +1075,9 @@ function inputTick() {
   }
 }
 
+/**
+ * @param {number} deltaTime
+ */
 function playerTick(deltaTime) {
   let moveX = 0;
   let moveY = 0;
@@ -911,23 +1125,20 @@ function playerTick(deltaTime) {
 
     manager.state = MANAGER_STATES.PICKING_UPGRADE;
 
-    const availableUpgrades = upgrades
-      .map((upgrade, index) => [index, upgrade])
-      .filter(([upgradeIndex, upgrade]) => {
-        if (upgrade.condition && !upgrade.condition(player)) {
-          return false;
-        }
+    const availableUpgrades = upgrades.filter((upgrade) => {
+      if (upgrade.condition && !upgrade.condition(player)) {
+        return false;
+      }
 
-        if (
-          upgrade.maxCount &&
-          player.upgrades.filter((u) => u === upgradeIndex).length >=
-            upgrade.maxCount
-        ) {
-          return false;
-        }
+      if (
+        upgrade.maxCount &&
+        player.upgrades.filter((u) => u === upgrade).length >= upgrade.maxCount
+      ) {
+        return false;
+      }
 
-        return true;
-      });
+      return true;
+    });
 
     // TODO: Weights
     manager.upgrades = shuffleArray(Array.from(availableUpgrades)).slice(0, 3);
@@ -949,6 +1160,9 @@ function playerTick(deltaTime) {
   );
 }
 
+/**
+ * @param {number} deltaTime
+ */
 function pickupsTick(deltaTime) {
   let index = 0;
   let pickupsToRemove = [];
@@ -961,10 +1175,10 @@ function pickupsTick(deltaTime) {
     if (distance < 10) {
       switch (pickup.type) {
         case PICKUP_TYPES.HEALTH:
-          player.health += pickup.health;
+          player.health += pickup.health ?? 0;
           break;
         case PICKUP_TYPES.EXPERIENCE:
-          player.experience += pickup.experience;
+          player.experience += pickup.experience ?? 0;
           break;
       }
 
@@ -988,6 +1202,9 @@ function pickupsTick(deltaTime) {
   }
 }
 
+/**
+ * @param {number} deltaTime
+ */
 function applyPlayerMeleeAttack(deltaTime) {
   const coneA2 = player.attrs.meleeAngle.value / 2;
   const coneStart = player.meleeDirection - coneA2;
@@ -1024,7 +1241,7 @@ function applyPlayerMeleeAttack(deltaTime) {
 let lastTime = 0;
 
 /**
- * @param {DOMHighResTimeStamp?} time
+ * @param {DOMHighResTimeStamp} nextTime
  */
 function animationFrameTick(nextTime) {
   requestAnimationFrame(animationFrameTick);
@@ -1042,6 +1259,9 @@ window.addEventListener("load", () => {
 });
 
 const DEBUG = {
+  /**
+   * @param {Partial<Player>} set
+   */
   setPlayer: (set) => {
     for (const [key, value] of Object.entries(set)) {
       player[key] = value;
