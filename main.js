@@ -312,13 +312,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @property {TLevel[]} levels
    * @property {(weapon: Weapon, level: TLevel) => void} render
    * @property {(weapon: Weapon, level: TLevel) => void} tick
-   * @property {(weapon: Weapon, level: TLevel, nextLevel?: TLevel) => [string, number | string][]} stats
+   * @property {(weapon: Weapon, level: TLevel, nextLevel?: TLevel) => [string, number, ((input: number) => string)?][]} stats
    */
 
   /**
    * @typedef SawBladesWeaponLevel
    * @property {number} damage
-   * @property {number} range
+   * @property {number} area
    * @property {number} rotationSpeed
    * @property {number} damageRate
    * @property {number} blades
@@ -334,12 +334,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     nam: "Saw Blades",
     levels: fillLevels([
       {
-        "damage": 10,
-        "range": 50,
-        "rotationSpeed": PI / 1.5,
+        damage: 10,
+        area: 50,
+        rotationSpeed: PI / 1.5,
         damageRate: 0.1,
-        "blades": 1,
-        "size": 10,
+        blades: 1,
+        size: 10,
       },
       { blades: 2 },
       { damage: 15, rotationSpeed: PI / 1.25 },
@@ -355,8 +355,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       for (let i = 0; i < attrs.blades; i++) {
         const angle = baseAngle + anglePerBlade * i;
-        const bladeX = player.x + cos(angle) * attrs.range;
-        const bladeY = player.y + sin(angle) * attrs.range;
+        const bladeX = player.x + cos(angle) * attrs.area;
+        const bladeY = player.y + sin(angle) * attrs.area;
 
         for (const enemy of enemies) {
           const dis = distance(enemy.x, enemy.y, bladeX, bladeY);
@@ -378,18 +378,22 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       for (let i = 0; i < attrs.blades; i++) {
         const angle = baseAngle + anglePerBlade * i;
-        const bladeX = player.x + cos(angle) * attrs.range;
-        const bladeY = player.y + sin(angle) * attrs.range;
+        const bladeX = player.x + cos(angle) * attrs.area;
+        const bladeY = player.y + sin(angle) * attrs.area;
 
         draw.circle(bladeX, bladeY, attrs.size / 2, "#fff");
       }
     },
-    stats: (_, attrs) => [
-      [`damage`, formatNumber(attrs.damage)],
-      [`range`, formatNumber(attrs.range)],
-      [`speed`, formatAngle(attrs.rotationSpeed) + "/s"],
-      [`blades`, formatNumber(attrs.blades)],
-      [`size`, formatNumber(attrs.size)],
+    stats: (_, attrs, attrs1) => [
+      [`damage`, optionalStatsDiff(attrs.damage, attrs1?.damage)],
+      [`range`, optionalStatsDiff(attrs.area, attrs1?.area)],
+      [
+        `speed`,
+        optionalStatsDiff(attrs.rotationSpeed, attrs1?.rotationSpeed),
+        (s) => formatAngle(s) + "/s",
+      ],
+      [`blades`, optionalStatsDiff(attrs.blades, attrs1?.blades)],
+      [`size`, optionalStatsDiff(attrs.size, attrs1?.size)],
     ],
   };
 
@@ -397,7 +401,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @typedef MeleeWeaponLevel
    * @property {number} damage
    * @property {number} angle
-   * @property {number} range
+   * @property {number} area
    * @property {number} damageRate
    */
 
@@ -405,17 +409,24 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @typedef {WeaponTypeBase<MeleeWeaponLevel>} MeleeWeapon
    */
 
+  /**
+   * @param {number} a
+   * @param {number} [b]
+   * @returns {number}
+   */
+  const optionalStatsDiff = (a, b) => (b ? b - a : a);
+
   /** @type {MeleeWeapon} */
   const sword = {
     nam: "Sword",
     levels: fillLevels([
-      { "damage": 8, "angle": PI / 4, "range": 80, damageRate: 0.5 },
+      { damage: 8, angle: PI / 4, area: 80, damageRate: 0.5 },
       { damage: 13 },
-      { angle: (PI / 4) * 1.2, range: 90 },
+      { angle: (PI / 4) * 1.2, area: 90 },
       { damage: 18 },
       { damage: 23 },
       { damage: 28, angle: (PI / 4) * 1.5 },
-      { damage: 33, angle: (PI / 4) * 1.7, range: 120 },
+      { damage: 33, angle: (PI / 4) * 1.7, area: 120 },
     ]),
     tick(_, attrs) {
       const damage = attrs.damage + player.attrs.damage.val;
@@ -432,7 +443,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         const offset = atan2(enemy.type.size / 2, distance);
 
         if (angle + offset > coneStart && angle - offset < coneEnd) {
-          if (distance - enemy.type.size / 2 < attrs.range) {
+          if (distance - enemy.type.size / 2 < attrs.area) {
             enemy.health -= damage;
             enemy.hitTick = 0.1;
             enemy.pushBackX = cos(angle) * 25;
@@ -455,14 +466,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         ctx.beginPath();
         ctx.moveTo(player.x, player.y);
         ctx.lineTo(
-          player.x + cos(player.meleeDirection - coneA2) * attrs.range,
-          player.y + sin(player.meleeDirection - coneA2) * attrs.range,
+          player.x + cos(player.meleeDirection - coneA2) * attrs.area,
+          player.y + sin(player.meleeDirection - coneA2) * attrs.area,
         );
 
         ctx.arc(
           player.x,
           player.y,
-          attrs.range,
+          attrs.area,
           player.meleeDirection - coneA2,
           player.meleeDirection + coneA2,
         );
@@ -471,17 +482,17 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         ctx.fill();
       }
     },
-    stats: (_, attrs) => [
-      [`damage`, formatNumber(attrs.damage)],
-      [`range`, formatNumber(attrs.range)],
-      [`angle`, formatAngle(attrs.angle)],
+    stats: (_, attrs, attrs1) => [
+      [`damage`, optionalStatsDiff(attrs.damage, attrs1?.damage)],
+      [`range`, optionalStatsDiff(attrs.area, attrs1?.area)],
+      [`angle`, optionalStatsDiff(attrs.angle, attrs1?.angle), formatAngle],
     ],
   };
 
   /**
    * @typedef AreaWeaponLevel
    * @property {number} damage
-   * @property {number} range
+   * @property {number} area
    * @property {number} damageRate
    */
 
@@ -493,11 +504,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const barbedWire = {
     nam: "Barbed Wire",
     levels: fillLevels([
-      { "range": 40, "damage": 2, damageRate: 0.75 },
-      { range: 60 },
+      { area: 40, damage: 2, damageRate: 0.75 },
+      { area: 60 },
       { damage: 3 },
-      { range: 70 },
-      { range: 80 },
+      { area: 70 },
+      { area: 80 },
       { damage: 4 },
     ]),
     tick(_, attrs) {
@@ -506,7 +517,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       for (const enemy of enemies) {
         const dis = distance(player.x, player.y, enemy.x, enemy.y);
 
-        if (dis < attrs.range) {
+        if (dis < attrs.area) {
           enemy.health -= damage;
           enemy.hitTick = 0.1;
 
@@ -523,11 +534,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       const delta = weapon.damageTick / rate;
       const alpha = 0.15 + cos(delta * 2 * PI) * 0.02;
 
-      draw.circle(player.x, player.y, attrs.range, `rgba(255,0,0,${alpha})`);
+      draw.circle(player.x, player.y, attrs.area, `rgba(255,0,0,${alpha})`);
     },
-    stats: (_, attrs) => [
-      [`damage`, formatNumber(attrs.damage)],
-      [`range`, formatNumber(attrs.range)],
+    stats: (_, attrs, attrs1) => [
+      [`damage`, optionalStatsDiff(attrs.damage, attrs1?.damage)],
+      [`range`, optionalStatsDiff(attrs.area, attrs1?.area)],
     ],
   };
 
@@ -591,7 +602,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @returns {Upgrade}
    */
   const weaponUpgrade = (weapon) => {
-    /** @type {undefined | { level: number; existing: Weapon; desc: string; }} */
+    /** @type {undefined | { lvl: number; existing: Weapon; desc: string; }} */
     let cache;
 
     return {
@@ -604,28 +615,22 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           return "New weapon";
         }
 
-        if (cache?.level === existing.lvl) {
+        if (cache?.lvl === existing.lvl) {
           return cache.desc;
         }
 
         const currentLevel = existing.typ.levels[existing.lvl];
         const nextLevel = existing.typ.levels[existing.lvl + 1];
-        const result = [];
 
-        for (const key in nextLevel) {
-          if (nextLevel[key] !== currentLevel[key]) {
-            const diff = nextLevel[key] - currentLevel[key];
-            const str =
-              key === "angle" ? formatAngle(diff) : formatNumber(diff);
-
-            result.push(`+${str} ${key}`);
-          }
-        }
-
-        const desc = result.join(", ");
+        // @ts-expect-error level typing is broken
+        const stats = existing.typ.stats(existing, currentLevel, nextLevel);
+        const desc = stats
+          .filter((s) => !!s[1])
+          .map(([l, v, f = formatNumber]) => `+${f(v)} ${l}`)
+          .join(", ");
 
         cache = {
-          level: existing.lvl,
+          lvl: existing.lvl,
           existing,
           desc,
         };
@@ -1261,7 +1266,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         ...weapon.typ
           // @ts-expect-error can't be bothered to fight the level type here
           .stats(weapon, weapon.typ.levels[weapon.lvl])
-          .map(([l, v]) => [`${name} ${l}`, v]),
+          .map(([l, v, f = formatNumber]) => [`${name} ${l}`, f(v)]),
       );
     }
 
