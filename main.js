@@ -1369,17 +1369,13 @@ function microSurvivors(target = document.body) {
    * @param {number} deltaTime
    */
   function gameLogicTick(deltaTime) {
+    managerTick(deltaTime);
+    
     switch (manager.state) {
       case MANAGER_STATES.RUNNING:
-        managerTick(deltaTime);
         enemiesTick(deltaTime);
         pickupsTick(deltaTime);
         playerTick(deltaTime);
-        break;
-      case MANAGER_STATES.DEAD:
-      case MANAGER_STATES.PICKING_UPGRADE:
-      case MANAGER_STATES.PAUSED:
-        managerTick(deltaTime);
         break;
     }
 
