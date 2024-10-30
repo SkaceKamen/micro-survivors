@@ -326,7 +326,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   };
 
   /** @type {Partial<Record<keyof input, boolean>>} */
-  const justPressedInput = {};
+  let justPressedInput = {};
 
   /**
    * @param {boolean} state
@@ -733,7 +733,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @property {string | (() => string)} desc
    * @property {UpgradeApply} use
    * @property {number} [maxCount=5]
-   * @property {UpgradeCondition} [cond]
    * @property {() => number} [wght]
    */
 
@@ -1674,7 +1673,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       playerTick(deltaTime);
     }
 
-    inputTick();
+    justPressedInput = {};
   };
 
   /**
@@ -1925,12 +1924,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     }
   };
 
-  const inputTick = () => {
-    for (const key in justPressedInput) {
-      justPressedInput[key] = false;
-    }
-  };
-
   /**
    * @param {number} deltaTime
    */
@@ -1962,10 +1955,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       const availableUpgrades = upgrades
         .filter((upgrade) => {
-          if (upgrade.cond && !upgrade.cond()) {
-            return false;
-          }
-
           if (
             player.upgrades.filter((u) => u === upgrade).length >=
             (upgrade.maxCount ?? 5)
