@@ -1559,14 +1559,6 @@ function applyPlayerMeleeAttack(deltaTime) {
   for (const enemy of enemies) {
     const dx = enemy.x - player.x;
     const dy = enemy.y - player.y;
-
-    if (
-      Math.abs(dx) > player.attrs.meleeDistance.value ||
-      Math.abs(dy) > player.attrs.meleeDistance.value
-    ) {
-      continue;
-    }
-
     const angle = Math.atan2(dy, dx);
 
     if (angle > coneStart && angle < coneEnd) {
