@@ -1,6 +1,4 @@
 // @ts-check
-"use strict";
-
 function microSurvivors(target = document.body, width = 400, height = 400) {
   /*
   TODO:
