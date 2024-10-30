@@ -171,7 +171,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
      * @param {number} y
      * @param {number} w
      * @param {number} h
-     * @param {string} color
+     * @param {string | CanvasGradient} color
      * @param {boolean} [stroke=false]
      */
     rect(x, y, w, h, color, stroke) {
@@ -182,14 +182,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
      * @param {string | CanvasGradient} style
      */
     overlay(style = "#000d") {
-      fillStyle(style);
-      ctx.fillRect(0, 0, width, height);
+      draw.rect(0, 0, width, height, style);
     },
     /**
      * @param {number} x
      * @param {number} y
      * @param {number} size
-     * @param {string} color
+     * @param {string | CanvasGradient} color
      */
     box(x, y, size, color) {
       fillStyle(color);
@@ -199,7 +198,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
      * @param {number} x
      * @param {number} y
      * @param {number} size
-     * @param {string} color
+     * @param {string | CanvasGradient} color
      */
     triangle(x, y, size, color) {
       fillStyle(color);
