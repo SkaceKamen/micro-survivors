@@ -18,10 +18,12 @@ Tiny survivors-like game that fits under 14 kB of minified JS code.
 
 ## Embedding into your website
 
-```javascript
-// injects the game canvas into element with id="survivors"
-microSurvivors(document.querySelector("#survivors"));
+Use gh-compatible CDN (jsDeliver as example here) to load the latest minified version and then call `microSurvivors` global function to start the game.
 
-// injects the game canvas into element with id="survivors", with 800x800 size
-microSurvivors(document.querySelector("#survivors"), 800, 800);
+```html
+<script src="https://cdn.jsdelivr.net/gh/SkaceKamen/micro-survivors@master/main.min.js"></script>
+<script>
+  // injects the game canvas into element with id="survivors"
+  microSurvivors(document.querySelector("#survivors"));
+</script>
 ```

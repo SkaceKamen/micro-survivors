@@ -1,7 +1,7 @@
 {
-  "name": "micro-survivor",
+  "name": "micro-survivors",
   "version": "1.0.0",
-  "description": "",
+  "description": "tiny survivors-like game embeddable on any website",
   "main": "main.min.js",
   "scripts": {
     "minify": "uglifyjs -m -c --mangle-props keep_quoted --name-cache main.mangle-cache.json -o main.min.js main.js"
@@ -11,5 +11,9 @@
   "devDependencies": {
     "prettier": "^3.3.3",
     "uglify-js": "^3.19.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SkaceKamen/micro-survivors"
   }
 }
