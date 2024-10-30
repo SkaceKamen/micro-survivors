@@ -11,9 +11,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    - more enemies?
     - enemy with ranged attack?
     - enemy with unusual movement pattern?
-   - map events?
-    - enemy spawn in a shape around player?
-   - better enemy graphics for 2+ levels
 */
 
   // #region Constants
@@ -26,20 +23,31 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   ];
   const w2 = width / 2;
   const h2 = height / 2;
+  const { floor, ceil, random, round, cos, sin, min, hypot, abs, atan2, PI } =
+    Math;
+  const PI2 = PI * 2;
+  const pressEnter = "Press ENTER to ";
+  const pressEnterToStart = pressEnter + "start";
+  const pressEnterToRestart = pressEnter + "restart";
   // #endregion
 
   // #region Utility functions
+
+  /**
+   * @param {string | number} n
+   * @param {number} [width=2]
+   * @param {string} [z="0"]
+   */
+  const pad = (n, width = 2, z = "0") => n.toString().padStart(width, z);
 
   /**
    * @param {number} seconds
    * @returns {string}
    */
   function formatTime(seconds) {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
-      .toString()
-      .padStart(2, "0")}`;
+    const minutes = floor(seconds / 60);
+    const remainingSeconds = floor(seconds % 60);
+    return pad(minutes) + ":" + pad(remainingSeconds);
   }
 
   const raise = () => {
@@ -51,7 +59,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    *
    * @param {number} a angle in radians
    */
-  const fA = (a) => f(a * (180 / Math.PI));
+  const fA = (a) => f(a * (180 / PI));
 
   /**
    * Format number with fixed decimal places
@@ -67,9 +75,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {number} x2
    * @param {number} y2
    */
-  const distance = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
-
-  const random = () => Math.random();
+  const distance = (x1, y1, x2, y2) => hypot(x2 - x1, y2 - y1);
 
   /**
    * @template A
@@ -78,7 +84,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    */
   function shuffleArray(array) {
     for (let i = array.length - 1; i >= 0; i--) {
-      const j = Math.floor(random() * (i + 1));
+      const j = floor(random() * (i + 1));
       [array[i], array[j]] = [array[j], array[i]];
     }
     return array;
@@ -89,7 +95,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {A[]} a
    * @returns {A}
    */
-  const pickRandom = (a) => a[Math.round(random() * (a.length - 1))];
+  const pickRandom = (a) => a[round(random() * (a.length - 1))];
 
   // #endregion
 
@@ -165,7 +171,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     circle(x, y, radius, color) {
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.arc(x, y, radius, 0, PI2);
       ctx.fill();
     },
   };
@@ -334,14 +340,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       {
         "damage": 5,
         "range": 50,
-        "rotationSpeed": Math.PI / 2,
+        "rotationSpeed": PI / 2,
         damageRate: 0.1,
         "blades": 1,
         "size": 10,
       },
       { blades: 2 },
-      { damage: 10, rotationSpeed: Math.PI / 1.5 },
-      { rotationSpeed: Math.PI / 1.25, size: 15 },
+      { damage: 10, rotationSpeed: PI / 1.5 },
+      { rotationSpeed: PI / 1.25, size: 15 },
       { blades: 3 },
       { damage: 15 },
       { blades: 4 },
@@ -368,13 +374,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     name: "Sword",
     type: WEAPON_TYPES.MELEE,
     levels: fillLevels([
-      { "damage": 8, "angle": Math.PI / 4, "range": 80, attackRate: 0.5 },
+      { "damage": 8, "angle": PI / 4, "range": 80, attackRate: 0.5 },
       { damage: 13 },
-      { angle: (Math.PI / 4) * 1.2, range: 90 },
+      { angle: (PI / 4) * 1.2, range: 90 },
       { damage: 18 },
       { damage: 23 },
-      { damage: 28, angle: (Math.PI / 4) * 1.5 },
-      { damage: 33, angle: (Math.PI / 4) * 1.7, range: 120 },
+      { damage: 28, angle: (PI / 4) * 1.5 },
+      { damage: 33, angle: (PI / 4) * 1.7, range: 120 },
     ]),
   };
 
@@ -654,6 +660,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
     /** @type { AttributeCache | null} */
     $cached: null,
+
     get value() {
       if (
         this.$cached?.base === this.base &&
@@ -779,33 +786,24 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {number} size
    * @returns {(x: number, y: number, hit: string | undefined) => void}
    */
-  const boxSprite = (colors, size) => (x, y, hit) => {
-    colors.forEach((color, i) => {
-      draw.box(x + i, y + i, size, hit ?? color);
-    });
-  };
+  const boxSprite = (colors, size) => (x, y, hit) =>
+    colors.map((color, i) => draw.box(x + i, y + i, size, hit ?? color));
 
   /**
    * @param {string[]} colors
    * @param {number} size
    * @returns {(x: number, y: number, hit: string | undefined) => void}
    */
-  const triangleSprite = (colors, size) => (x, y, hit) => {
-    colors.forEach((color, i) => {
-      draw.triangle(x + i, y + i, size, hit ?? color);
-    });
-  };
+  const triangleSprite = (colors, size) => (x, y, hit) =>
+    colors.map((color, i) => draw.triangle(x + i, y + i, size, hit ?? color));
 
   /**
    * @param {string[]} colors
    * @param {number} size
    * @returns {(x: number, y: number, hit: string | undefined) => void}
    */
-  const circleSprite = (colors, size) => (x, y, hit) => {
-    colors.forEach((color, i) => {
-      draw.circle(x + i, y + i, size, hit ?? color);
-    });
-  };
+  const circleSprite = (colors, size) => (x, y, hit) =>
+    colors.map((color, i) => draw.circle(x + i, y + i, size, hit ?? color));
 
   const boxLevel1 = defineEnemy({
     health: 10,
@@ -954,7 +952,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {number} step
    */
   const range = (from, to, step = 1) =>
-    Array.from({ length: Math.floor((to - from) / step) }).map(
+    Array.from({ length: floor((to - from) / step) }).map(
       (_, i) => i * step + from,
     );
 
@@ -963,20 +961,20 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     const xRange = range(player.x - w2, player.x + w2, enemy.size * 2);
     const yRange = range(player.y - h2, player.y + h2, enemy.size * 2);
 
-    xRange.map((x) => enemies.push(initializeEnemy(x, player.y - h2, enemy)));
-    xRange.map((x) => enemies.push(initializeEnemy(x, player.y + h2, enemy)));
-    yRange.map((y) => enemies.push(initializeEnemy(player.x - w2, y, enemy)));
-    yRange.map((y) => enemies.push(initializeEnemy(player.x + w2, y, enemy)));
+    xRange.map((x) => pushEnemy(x, player.y - h2, enemy));
+    xRange.map((x) => pushEnemy(x, player.y + h2, enemy));
+    yRange.map((y) => pushEnemy(player.x - w2, y, enemy));
+    yRange.map((y) => pushEnemy(player.x + w2, y, enemy));
   };
 
   /** @param {EnemyType} enemy */
   const circleWave = (enemy) => () => {
-    const angleStep = (Math.PI * 2) / 40;
-    for (let i = 0; i < Math.PI * 2; i += angleStep) {
-      const x = player.x + Math.cos(i) * w2;
-      const y = player.y + Math.sin(i) * h2;
-      enemies.push(initializeEnemy(x, y, enemy));
-    }
+    const angleStep = PI2 / 40;
+    range(0, PI2, angleStep).map((i) => {
+      const x = player.x + cos(i) * w2;
+      const y = player.y + sin(i) * h2;
+      pushEnemy(x, y, enemy);
+    });
   };
 
   /**
@@ -1072,6 +1070,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     boss: !!type.boss,
   });
 
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {EnemyType} type
+   */
+  const pushEnemy = (x, y, type) => enemies.push(initializeEnemy(x, y, type));
+
   /** @typedef {ReturnType<typeof initializeEnemy>} Enemy */
   /** @type {Enemy[]} */
   const enemies = [];
@@ -1085,10 +1090,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const pickups = [];
 
   function renderBackground() {
-    const startX = Math.floor((player.x - width / 2) / 50) * 50;
-    const startY = Math.floor((player.y - height / 2) / 50) * 50;
-    const endX = Math.ceil((player.x + width / 2) / 50) * 50;
-    const endY = Math.ceil((player.y + height / 2) / 50) * 50;
+    const startX = floor((player.x - w2) / 50) * 50;
+    const startY = floor((player.y - h2) / 50) * 50;
+    const endX = ceil((player.x + w2) / 50) * 50;
+    const endY = ceil((player.y + h2) / 50) * 50;
 
     for (let x = startX; x < endX; x += 50) {
       for (let y = startY; y < endY; y += 50) {
@@ -1116,13 +1121,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           const data = weapon.type;
           const attrs = data.levels[weapon.level];
 
-          const anglePerBlade = (Math.PI * 2) / attrs.blades;
+          const anglePerBlade = PI2 / attrs.blades;
           const baseAngle = weapon.tick * attrs.rotationSpeed;
 
           for (let i = 0; i < attrs.blades; i++) {
             const angle = baseAngle + anglePerBlade * i;
-            const bladeX = player.x + Math.cos(angle) * attrs.range;
-            const bladeY = player.y + Math.sin(angle) * attrs.range;
+            const bladeX = player.x + cos(angle) * attrs.range;
+            const bladeY = player.y + sin(angle) * attrs.range;
 
             draw.circle(bladeX, bladeY, attrs.size / 2, "#fff");
           }
@@ -1143,8 +1148,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
             ctx.beginPath();
             ctx.moveTo(player.x, player.y);
             ctx.lineTo(
-              player.x + Math.cos(player.meleeDirection - coneA2) * attrs.range,
-              player.y + Math.sin(player.meleeDirection - coneA2) * attrs.range,
+              player.x + cos(player.meleeDirection - coneA2) * attrs.range,
+              player.y + sin(player.meleeDirection - coneA2) * attrs.range,
             );
 
             ctx.arc(
@@ -1166,7 +1171,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           const attrs = weapon.type.levels[weapon.level];
           const rate = attrs.attackRate * player.attrs.attackSpeed.value;
           const delta = weapon.damageTick / rate;
-          const alpha = 0.15 + Math.cos(delta * 2 * Math.PI) * 0.02;
+          const alpha = 0.15 + cos(delta * 2 * PI) * 0.02;
 
           draw.circle(
             player.x,
@@ -1225,7 +1230,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     const stats = [
       ["Base damage", f(player.attrs.damage.value)],
       ["Attack speed", f(player.attrs.attackSpeed.value, 2)],
-      ["Health", Math.floor(player.attrs.health.value)],
+      ["Health", floor(player.attrs.health.value)],
       ["Regeneration", f(player.attrs.healthRegen.value, 2) + "/s"],
       ["Speed", f(player.attrs.speed.value, 2)],
       ["Health Drop", f(player.attrs.healthDrop.value * 100) + "%"],
@@ -1306,7 +1311,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     draw.text(
       50 + 2,
       10,
-      `${Math.floor(player.health)} / ${Math.floor(player.attrs.health.value)}`,
+      `${floor(player.health)} / ${floor(player.attrs.health.value)}`,
       "#fff",
       "left",
       "middle",
@@ -1334,7 +1339,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     draw.text(25, 2, "level", "#666", "center", "top");
     draw.text(25, 18, `${player.level + 1}`, "#fff", "center", "top");
 
-    draw.text(width / 2, 35, formatTime(manager.runtime), "#fff", "center");
+    draw.text(w2, 35, formatTime(manager.runtime), "#fff", "center");
 
     if (manager.runtime < 20) {
       let y = height - 30 - help.length * 15;
@@ -1355,19 +1360,19 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         let y = 100;
 
         draw.overlay();
-        draw.text(width / 2, y, "YOU'RE DEAD!", "#f88", "center", "top", 24);
+        draw.text(w2, y, "YOU'RE DEAD!", "#f88", "center", "top", 24);
 
         y += 45;
         y = renderSurvivalStatsUi(50, y, width - 100);
         y += 30;
 
-        draw.text(width / 2, y, "Press ENTER to restart", "#fff", "center");
+        draw.text(w2, y, pressEnterToRestart, "#fff", "center");
         break;
       }
 
       case MANAGER_STATES.PICKING_UPGRADE: {
         draw.overlay();
-        draw.text(width / 2, 10, "LEVEL UP", "#fff", "center", "top");
+        draw.text(w2, 10, "LEVEL UP", "#fff", "center", "top");
 
         for (let i = 0; i < manager.upgrades.length; i++) {
           const upgrade = manager.upgrades[i];
@@ -1416,63 +1421,33 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       case MANAGER_STATES.PAUSED: {
         draw.overlay();
-        draw.text(width / 2, 100, "PAUSED", "#fff", "center", "middle");
+        draw.text(w2, 100, "PAUSED", "#fff", "center", "middle");
         renderPlayerStatsUi(20, 110, width - 40);
         break;
       }
 
       case MANAGER_STATES.WIN: {
         draw.overlay();
-        draw.text(width / 2, 100, "YOU WON", "#fff", "center", "middle");
+        draw.text(w2, 100, "YOU WON", "#fff", "center", "middle");
 
         let y = 130;
         y = renderSurvivalStatsUi(100, y, width - 200);
         y += 30;
 
-        draw.text(width / 2, y, "Press ENTER to restart", "#fff", "center");
+        draw.text(w2, y, pressEnterToRestart, "#fff", "center");
         break;
       }
 
       case MANAGER_STATES.START: {
         draw.overlay();
-        draw.text(
-          width / 2,
-          height / 2 - 40,
-          "MICRO",
-          "#fff",
-          "center",
-          "bottom",
-          68,
-        );
-        draw.text(
-          width / 2,
-          height / 2 - 40,
-          "SURVIVORS",
-          "#fff",
-          "center",
-          "top",
-          38,
-        );
-        draw.text(
-          width / 2,
-          height - 5,
-          "by Kamen",
-          "#ccc",
-          "center",
-          "bottom",
-          10,
-        );
+        draw.text(w2, h2 - 40, "MICRO", "#fff", "center", "bottom", 68);
+        draw.text(w2, h2 - 40, "SURVIVORS", "#fff", "center", "top", 38);
+        draw.text(w2, height - 5, "by Kamen", "#ccc", "center", "bottom", 10);
 
         ctx.globalAlpha =
-          0.5 + (Math.cos((performance.now() / 1000) * 5) * 0.5 + 0.5) * 0.5;
+          0.5 + (cos((performance.now() / 1000) * 5) * 0.5 + 0.5) * 0.5;
 
-        draw.text(
-          width / 2,
-          height / 2 + 50,
-          "Press ENTER to start",
-          "#fff",
-          "center",
-        );
+        draw.text(w2, h2 + 50, pressEnterToStart, "#fff", "center");
 
         ctx.globalAlpha = 1;
 
@@ -1482,7 +1457,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   }
 
   function renderOverlays() {
-    const d = Math.min(1, player.lastDamagedTick / 0.5);
+    const d = min(1, player.lastDamagedTick / 0.5);
 
     if (d > 0) {
       const damageOverlayGradient = screenGradient(
@@ -1494,7 +1469,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       draw.overlay(damageOverlayGradient);
     }
 
-    const p = Math.min(1, player.lastPickupTick / 0.1);
+    const p = min(1, player.lastPickupTick / 0.1);
     if (p > 0) {
       const pickupOverlayGradient = screenGradient(
         130,
@@ -1509,7 +1484,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   function render() {
     ctx.reset();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.translate(-player.x + width / 2, -player.y + height / 2);
+    ctx.translate(-player.x + w2, -player.y + h2);
 
     renderBackground();
     renderPickups();
@@ -1581,7 +1556,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       const dx = player.x - enemy.x;
       const dy = player.y - enemy.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
+      const distance = hypot(dx, dy);
 
       // Remove enemies that are too far from player
       if (!enemy.boss && distance > width * 3) {
@@ -1613,13 +1588,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       enemy.y += velocityY;
 
       // Process push-back
-      if (Math.abs(enemy.pushBackX) > 0.1) {
+      if (abs(enemy.pushBackX) > 0.1) {
         const diff =
           (enemy.pushBackX > 0 ? -1 : 1) *
           deltaTime *
           (type.pushBackResistance ?? 20);
 
-        if (Math.abs(diff) > Math.abs(enemy.pushBackX)) {
+        if (abs(diff) > abs(enemy.pushBackX)) {
           enemy.pushBackX = 0;
         } else {
           enemy.pushBackX += diff;
@@ -1628,13 +1603,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         enemy.pushBackX = 0;
       }
 
-      if (Math.abs(enemy.pushBackY) > 0.1) {
+      if (abs(enemy.pushBackY) > 0.1) {
         const diff =
           (enemy.pushBackY > 0 ? -1 : 1) *
           deltaTime *
           (type.pushBackResistance ?? 20);
 
-        if (Math.abs(diff) > Math.abs(enemy.pushBackY)) {
+        if (abs(diff) > abs(enemy.pushBackY)) {
           enemy.pushBackY = 0;
         } else {
           enemy.pushBackY += diff;
@@ -1657,15 +1632,15 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {EnemyType} type
    */
   function spawnEnemy(type) {
-    const angle = random() * Math.PI * 2;
+    const angle = random() * PI2;
     const side = Math.max(width, height) / 2;
-    const minDistance = Math.sqrt(side * side * 2);
+    const minDistance = hypot(side, side);
     const distance = minDistance + random() * 15;
 
     enemies.push(
       initializeEnemy(
-        player.x + Math.cos(angle) * distance,
-        player.y + Math.sin(angle) * distance,
+        player.x + cos(angle) * distance,
+        player.y + sin(angle) * distance,
         type,
       ),
     );
@@ -1798,17 +1773,17 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     input.right && (moveX += 1);
 
     const speed = player.attrs.speed.value * deltaTime;
-    const moveD = Math.sqrt(moveX * moveX + moveY * moveY);
+    const moveD = hypot(moveX, moveY);
 
     if (moveD > 0) {
       player.x += (moveX / moveD) * speed;
       player.y += (moveY / moveD) * speed;
     }
 
-    const playerAbsoluteX = width / 2;
-    const playerAbsoluteY = height / 2;
+    const playerAbsoluteX = w2;
+    const playerAbsoluteY = h2;
 
-    player.meleeDirection = Math.atan2(
+    player.meleeDirection = atan2(
       input.targetY - playerAbsoluteY,
       input.targetX - playerAbsoluteX,
     );
@@ -1852,7 +1827,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       player.lastPickupTick -= deltaTime;
     }
 
-    player.health = Math.min(
+    player.health = min(
       player.attrs.health.value,
       player.health + player.attrs.healthRegen.value * deltaTime,
     );
@@ -1870,13 +1845,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
             weapon.damageTick =
               attrs.damageRate * player.attrs.attackSpeed.value;
 
-            const anglePerBlade = (Math.PI * 2) / attrs.blades;
+            const anglePerBlade = PI2 / attrs.blades;
             const baseAngle = weapon.tick * attrs.rotationSpeed;
 
             for (let i = 0; i < attrs.blades; i++) {
               const angle = baseAngle + anglePerBlade * i;
-              const bladeX = player.x + Math.cos(angle) * attrs.range;
-              const bladeY = player.y + Math.sin(angle) * attrs.range;
+              const bladeX = player.x + cos(angle) * attrs.range;
+              const bladeY = player.y + sin(angle) * attrs.range;
 
               for (const enemy of enemies) {
                 const dis = distance(enemy.x, enemy.y, bladeX, bladeY);
@@ -1884,8 +1859,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
                 if (dis < attrs.size / 2 + enemy.type.size + 2) {
                   enemy.health -= damage;
                   enemy.hitTick = 0.1;
-                  enemy.pushBackX = Math.cos(angle) * 20;
-                  enemy.pushBackY = Math.sin(angle) * 20;
+                  enemy.pushBackX = cos(angle) * 20;
+                  enemy.pushBackY = sin(angle) * 20;
 
                   manager.damageDone += damage;
                 }
@@ -1921,15 +1896,15 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
             for (const enemy of enemies) {
               const dx = enemy.x - player.x;
               const dy = enemy.y - player.y;
-              const distance = Math.sqrt(dx * dx + dy * dy);
+              const distance = hypot(dx, dy);
 
               if (distance < attrs.range) {
                 enemy.health -= damage;
                 enemy.hitTick = 0.1;
 
                 // TODO: Should this have push-back?
-                // enemy.pushBackX = Math.cos(angle) * 20;
-                // enemy.pushBackY = Math.sin(angle) * 20;
+                // enemy.pushBackX = cos(angle) * 20;
+                // enemy.pushBackY = sin(angle) * 20;
 
                 manager.damageDone += damage;
               }
@@ -1955,12 +1930,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     for (const pickup of pickups) {
       const dx = player.x - pickup.x;
       const dy = player.y - pickup.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
+      const dis = hypot(dx, dy);
 
-      if (distance < 10) {
+      if (dis < 10) {
         switch (pickup.type) {
           case PICKUP_TYPES.HEALTH:
-            player.health = Math.min(
+            player.health = min(
               player.attrs.health.value,
               player.health + (pickup.health ?? 0),
             );
@@ -1973,11 +1948,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         player.lastPickupTick = 0.1;
 
         pickupsToRemove.push(index);
-      } else if (distance < player.attrs.pickupDistance.value) {
+      } else if (dis < player.attrs.pickupDistance.value) {
         const speed =
-          (player.attrs.pickupDistance.value + 10 - distance) * deltaTime * 2;
-        pickup.x += (dx / distance) * speed;
-        pickup.y += (dy / distance) * speed;
+          (player.attrs.pickupDistance.value + 10 - dis) * deltaTime * 2;
+        pickup.x += (dx / dis) * speed;
+        pickup.y += (dy / dis) * speed;
       }
 
       index++;
@@ -2005,16 +1980,16 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     for (const enemy of enemies) {
       const dx = enemy.x - player.x;
       const dy = enemy.y - player.y;
-      const angle = Math.atan2(dy, dx);
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      const offset = Math.atan2(enemy.type.size / 2, distance);
+      const angle = atan2(dy, dx);
+      const distance = hypot(dx, dy);
+      const offset = atan2(enemy.type.size / 2, distance);
 
       if (angle + offset > coneStart && angle - offset < coneEnd) {
         if (distance - enemy.type.size / 2 < attrs.range) {
           enemy.health -= damage;
           enemy.hitTick = 0.1;
-          enemy.pushBackX = Math.cos(angle) * 25;
-          enemy.pushBackY = Math.sin(angle) * 25;
+          enemy.pushBackX = cos(angle) * 25;
+          enemy.pushBackY = sin(angle) * 25;
 
           manager.damageDone += damage;
         }
