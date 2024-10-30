@@ -11,10 +11,10 @@ Tiny survivors-like game that fits under 14 kB of minified JS code.
 
 ## Screenshots
 
-![ingame](./media/ingame.png)
-![classes](./media/class-picker.png)
-![level-up](./media/level-up.png)
-![start](./media/start.png)
+![ingame](./media/ingame.jpg)
+![classes](./media/class-picker.jpg)
+![level-up](./media/level-up.jpg)
+![start](./media/start.jpg)
 
 ## Embedding into your website
 
