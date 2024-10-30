@@ -3,19 +3,18 @@
 
 /*
   TODO:
-   - add waves until 10 minutes mark, add final boss there
    - add pickup weapons:
     - barbed wire - slows & damages enemies around player
     - shuriken - ranged attack in random direction
     - lightning - chain lightning attack?
    - add armor and relevant upgrades?
-   - endgame - when player kills final boss, they win
    - more enemies?
     - enemy with ranged attack?
     - enemy with unusual movement pattern?
    - map events?
     - enemy spawn in a shape around player?
    - starting screen?
+   - better enemy graphics for 2+ levels
 */
 
 // #region Utility functions
