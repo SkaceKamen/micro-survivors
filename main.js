@@ -59,7 +59,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    *
    * @param {number} a angle in radians
    */
-  const fA = (a) => f(a * (180 / PI));
+  const formatAngle = (a) => formatNumber(a * (180 / PI));
 
   /**
    * Format number with fixed decimal places
@@ -67,7 +67,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {number} n
    * @param {number} [d=0]
    */
-  const f = (n, d = 0) => n.toFixed(d);
+  const formatNumber = (n, d = 0) => n.toFixed(d);
 
   /**
    * @param {number} x1
@@ -432,14 +432,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {number} increasePerLevel
    * @returns {AttributeEnhancer}
    */
-  const baseIncreaseWithLevel = (increasePerLevel) => (player, value) =>
-    value + player.level * increasePerLevel;
+  const baseIncreaseWithLevel = (increasePerLevel) => () =>
+    player.level * increasePerLevel;
 
   /**
    * @param {number} value
    * @returns {AttributeEnhancer}
    */
-  const baseValue = (value) => () => value;
+  const baseValue = (value) => value;
 
   /**
    * @typedef PlayerType
@@ -482,7 +482,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @returns {UpgradeApply}
    */
   const baseAttr = (attr, change) => (player) =>
-    player.attrs[attr].push("base", (_, value) => value + change);
+    player.attrs[attr].base.push(change);
 
   /**
    * @param {keyof Player['attrs']} attr
@@ -490,7 +490,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @returns {UpgradeApply}
    */
   const multiplyAttr = (attr, change) => (player) =>
-    player.attrs[attr].push("multiplier", (_, value) => value * change);
+    player.attrs[attr].base.push(change);
 
   /**
    * @param {WeaponType} weapon
@@ -522,7 +522,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         for (const key in nextLevel) {
           if (nextLevel[key] !== currentLevel[key]) {
             const diff = nextLevel[key] - currentLevel[key];
-            const str = key === "angle" ? `${fA(diff)}°` : f(diff);
+            const str =
+              key === "angle" ? `${formatAngle(diff)}°` : formatNumber(diff);
 
             result.push(`+${str} ${key}`);
           }
@@ -575,7 +576,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       name: "Max health",
       description: "+25 max health, +5 health",
       apply: (player) => {
-        player.attrs.health.push("base", (_, value) => value + 25);
+        player.attrs.health.base.push(25);
         player.health += 5;
       },
       maxCount: 5,
@@ -621,23 +622,20 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     weaponUpgrade(barbedWire, "Barbed Wire"),
   ];
 
-  /** @typedef {(player: Player, value: number) => number} AttributeEnhancer */
+  /** @typedef {number | (() => number)} AttributeEnhancer */
   /** @typedef {{ base: AttributeEnhancer[]; multiplier: AttributeEnhancer[]; playerLevel: number; value: number; }} AttributeCache */
+
+  /**
+   * @param {number | (() => number)} v
+   * @returns {number}
+   */
+  const fnOrV = (v) => (typeof v === "function" ? v() : v);
 
   /**
    * @param {AttributeEnhancer[]} [base]
    * @param {AttributeEnhancer[]} [multiplier]
    */
   const createAttribute = (base = [], multiplier = []) => ({
-    /**
-     * Add a new attribute modifier function
-     * @param {'base' | 'multiplier'} type
-     * @param {(player: Player, value: number) => number} fn
-     */
-    push(type, fn) {
-      this[type] = [...this[type], fn];
-    },
-
     // Base attribute value modifiers
     /** @type {AttributeEnhancer[]} */
     "base": [...base],
@@ -658,9 +656,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         return this.$cached.value;
       }
 
-      const value =
-        this.base.reduce((acc, fn) => fn(player, acc), 0) *
-        this.multiplier.reduce((acc, fn) => fn(player, acc), 1);
+      /**
+       * @param {number} acc
+       * @param {AttributeEnhancer} v
+       * @returns {number}
+       */
+      const sum = (acc, v) => acc + fnOrV(v);
+
+      const value = this.base.reduce(sum, 0) * this.multiplier.reduce(sum, 1);
 
       this.$cached = {
         base: this.base,
@@ -738,7 +741,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     weapons: type.weapons.map((w) => initializeWeapon(w)),
   });
 
-  let player = createPlayer(warrior);
+  const player = createPlayer(warrior);
 
   const MANAGER_STATES = {
     RUNNING: 0,
@@ -1056,12 +1059,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /** @type {Enemy[]} */
   const enemies = [];
 
-  const PICKUP_TYPES = {
-    HEALTH: 0,
-    EXPERIENCE: 1,
-  };
-
-  /** @type {Array<{ x: number; y: number; type: number; health?: number; experience?: number; }>} */
+  /** @type {Array<{ x: number; y: number; health?: number; experience?: number; }>} */
   const pickups = [];
 
   function renderBackground() {
@@ -1203,12 +1201,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    */
   function renderPlayerStatsUi(x, y, w) {
     const stats = [
-      ["Base damage", f(player.attrs.damage.value)],
-      ["Attack speed", f(player.attrs.attackSpeed.value, 2)],
+      ["Base damage", formatNumber(player.attrs.damage.value)],
+      ["Attack speed", formatNumber(player.attrs.attackSpeed.value, 2)],
       ["Health", floor(player.attrs.health.value)],
-      ["Regeneration", f(player.attrs.healthRegen.value, 2) + "/s"],
-      ["Speed", f(player.attrs.speed.value, 2)],
-      ["Health Drop", f(player.attrs.healthDrop.value * 100) + "%"],
+      ["Regeneration", formatNumber(player.attrs.healthRegen.value, 2) + "/s"],
+      ["Speed", formatNumber(player.attrs.speed.value, 2)],
+      ["Health Drop", formatNumber(player.attrs.healthDrop.value * 100) + "%"],
     ];
 
     for (const weapon of player.weapons) {
@@ -1219,9 +1217,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           const attrs = weapon.type.levels[weapon.level];
 
           stats.push([`${name} level`, weapon.level + 1]);
-          stats.push([`${name} damage`, f(attrs.damage)]);
-          stats.push([`${name} range`, f(attrs.range)]);
-          stats.push([`${name} angle`, `${fA(attrs.angle)}°`]);
+          stats.push([`${name} damage`, formatNumber(attrs.damage)]);
+          stats.push([`${name} range`, formatNumber(attrs.range)]);
+          stats.push([`${name} angle`, `${formatAngle(attrs.angle)}°`]);
           break;
         }
 
@@ -1229,10 +1227,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           const attrs = weapon.type.levels[weapon.level];
 
           stats.push([`${name} level`, weapon.level + 1]);
-          stats.push([`${name} damage`, f(attrs.damage)]);
-          stats.push([`${name} range`, f(attrs.range)]);
-          stats.push([`${name} blades`, f(attrs.blades)]);
-          stats.push([`${name} size`, f(attrs.size)]);
+          stats.push([`${name} damage`, formatNumber(attrs.damage)]);
+          stats.push([`${name} range`, formatNumber(attrs.range)]);
+          stats.push([`${name} blades`, formatNumber(attrs.blades)]);
+          stats.push([`${name} size`, formatNumber(attrs.size)]);
           break;
         }
 
@@ -1240,8 +1238,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           const attrs = weapon.type.levels[weapon.level];
 
           stats.push([`${name} level`, weapon.level + 1]);
-          stats.push([`${name} damage`, f(attrs.damage)]);
-          stats.push([`${name} range`, f(attrs.range)]);
+          stats.push([`${name} damage`, formatNumber(attrs.damage)]);
+          stats.push([`${name} range`, formatNumber(attrs.range)]);
           break;
         }
       }
@@ -1259,8 +1257,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     const stats = [
       [`Survived`, formatTime(manager.runtime)],
       [`Level`, `${player.level + 1}`],
-      [`Damage`, f(manager.damageDone)],
-      [`DPS`, `${f(manager.damageDone / manager.runtime, 2)}`],
+      [`Damage`, formatNumber(manager.damageDone)],
+      [`DPS`, `${formatNumber(manager.damageDone / manager.runtime, 2)}`],
       [`Kills`, `${manager.kills}`],
     ];
 
@@ -1502,7 +1500,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         pickups.push({
           x: enemy.x,
           y: enemy.y,
-          type: PICKUP_TYPES.EXPERIENCE,
           experience: type.experience,
         });
 
@@ -1510,7 +1507,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           pickups.push({
             x: enemy.x - 5 + random() * 10,
             y: enemy.y - 5 + random() * 10,
-            type: PICKUP_TYPES.HEALTH,
             health: 10,
           });
         }
@@ -1622,14 +1618,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   }
 
   function startNewGame() {
-    player = createPlayer(warrior);
-
-    for (const key in startingManagerState) {
-      manager[key] = startingManagerState[key];
-    }
+    Object.assign(player, createPlayer(warrior));
+    Object.assign(manager, startingManagerState);
 
     manager.state = MANAGER_STATES.RUNNING;
-
     enemies.length = 0;
     pickups.length = 0;
   }
@@ -1644,12 +1636,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
         if (justPressedInput.pause) {
           manager.state = MANAGER_STATES.PAUSED;
-          break;
         }
 
         if (player.health <= 0) {
           manager.state = MANAGER_STATES.DEAD;
-          break;
         }
 
         const spawnRateIndex =
@@ -1905,18 +1895,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       const dis = hypot(dx, dy);
 
       if (dis < 10) {
-        switch (pickup.type) {
-          case PICKUP_TYPES.HEALTH:
-            player.health = min(
-              player.attrs.health.value,
-              player.health + (pickup.health ?? 0),
-            );
-            break;
-          case PICKUP_TYPES.EXPERIENCE:
-            player.experience += pickup.experience ?? 0;
-            break;
-        }
+        player.health = min(
+          player.attrs.health.value,
+          player.health + (pickup.health ?? 0),
+        );
 
+        player.experience += pickup.experience ?? 0;
         player.lastPickupTick = 0.1;
 
         pickupsToRemove.push(index);

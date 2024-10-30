@@ -13,6 +13,9 @@
       const [player, manager] = microSurvivors();
 
       window.DEBUG = {
+        player,
+        manager,
+
         setPlayer: (set) => {
           for (const [key, value] of Object.entries(set)) {
             player[key] = value;
