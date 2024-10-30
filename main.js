@@ -1482,7 +1482,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   const render = () => {
     ctx.reset();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, width, height);
     ctx.translate(-player.x + w2, -player.y + h2);
 
     renderBackground();
@@ -1564,7 +1564,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       if (enemy.damageTick <= 0) {
         // Damage player when close
         if (distance < enemy.type.size - 2) {
-          player.health -= type.health;
+          player.health -= type.damage;
           player.lastDamagedTick = 0.5;
           enemy.damageTick = type.damageTick;
         }
