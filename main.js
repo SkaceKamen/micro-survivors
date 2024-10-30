@@ -596,6 +596,13 @@ function microSurvivors(target = document.body) {
       maxCount: 5,
     },
     {
+      name: "Health drop",
+      description: "+1% health drop chance",
+      weight: 1,
+      apply: baseAttr("healthDrop", 0.01),
+      maxCount: 5,
+    },
+    {
       name: "Regen",
       description: "+0.1/s health regen",
       weight: 1,
@@ -618,7 +625,7 @@ function microSurvivors(target = document.body) {
     },
     {
       name: "Damage",
-      description: "+2 damage",
+      description: "+1 damage",
       weight: 1,
       apply: baseAttr("damage", 1),
       maxCount: 5,
