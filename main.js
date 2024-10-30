@@ -261,10 +261,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   /** @type {Record<string, keyof typeof justPressedInput>} */
   const inputMapping = {
-    "arrowup": "up",
-    "arrowdown": "down",
-    "arrowleft": left,
-    "arrowright": right,
     "w": "up",
     "s": "down",
     "a": left,
@@ -306,16 +302,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     }
   };
 
-  const listen = document[addEventListener];
-
-  listen("keydown", (event) => processKeyEvent(event, true));
-  listen("keyup", (event) => processKeyEvent(event, false));
-
-  canvas[addEventListener]("mousemove", (event) => {
+  onkeydown = (event) => processKeyEvent(event, true);
+  onkeyup = (event) => processKeyEvent(event, false);
+  onmousemove = (event) => {
     const rect = canvas.getBoundingClientRect();
     input.targetX = event.clientX - rect.left;
     input.targetY = event.clientY - rect.top;
-  });
+  };
 
   /**
    * @template LevelType
