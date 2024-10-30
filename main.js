@@ -2,7 +2,7 @@
 function microSurvivors(target = document.body, width = 400, height = 400) {
   /*
   TODO:
-   - phone support?
+   - touch controls support?
    - audio?
    - more player types:
     - monk
@@ -31,7 +31,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const left = "left";
   const right = "right";
   const middle = "middle";
-  const addEventListener = "addEventListener";
   const white = "#fff";
   const gray = "#aaa";
   const lightGray = "#ccc";
@@ -61,15 +60,15 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    *
    * @param {number} a angle in radians
    */
-  const formatAngle = (a) => formatNumber(a * (180 / PI)) + "°";
+  const fAngle = (a) => fNumber(a * (180 / PI)) + "°";
 
   /**
    * Format number with fixed decimal places
    *
-   * @param {number} n
+   * @param {number | undefined} n
    * @param {number} [d=0]
    */
-  const formatNumber = (n, d = 0) => n.toFixed(d);
+  const fNumber = (n, d = 0) => n?.toFixed(d) ?? "";
 
   /**
    * @param {number} x1
@@ -82,14 +81,17 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /**
    * @template A
    * @param {Array<{val: A; weight: number}>} array
+   * @param {number} count
    * @returns {A[]}
    */
-  const weightedShuffleArray = (array) => {
-    for (let i = array.length - 1; i >= 0; i--) {
-      const j = weightedIndexChoice(array.slice(i));
-      [array[i], array[j]] = [array[j], array[i]];
+  const weightedPickItems = (array, count) => {
+    const result = [];
+    while (array.length && count--) {
+      const index = weightedIndexChoice(array);
+      result.push(array[index].val);
+      array.splice(index, 1);
     }
-    return array.map((v) => v.val);
+    return result;
   };
 
   /**
@@ -208,18 +210,20 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {number} h
    * @param {(string | number)[][]} table
    */
-  const renderStatsTable = (x, y, w, h, table) => {
+  const renderStatsTable = (x, y, w, h, table, split = true) => {
     const rowHeight = 15;
     const tableY = y;
-    let rowWidth = w / 2;
+    let rowWidth = split ? w / 2 : w;
 
-    if ((table.length - 1) * rowHeight <= h) {
+    if (split && (table.length - 1) * rowHeight <= h) {
       x += w / 4;
     }
 
     for (const [name, value] of table) {
-      draw.text(x, y, `${name}:`, gray);
-      draw.text(x + rowWidth - 5, y, `${value}`, white, right);
+      if (name || value) {
+        draw.text(x, y, `${name}:`, gray);
+        draw.text(x + rowWidth - 5, y, `${value}`, white, right);
+      }
 
       y += rowHeight;
 
@@ -252,10 +256,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   /** @type {CanvasRenderingContext2D} */
   // @ts-expect-error null check doesn't provide much value here, lets just skip it
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext`2d`;
 
   /** @type {Record<string, keyof typeof justPressedInput>} */
   const inputMapping = {
+    "arrowup": "up",
+    "arrowdown": "down",
+    "arrowleft": left,
+    "arrowright": right,
     "w": "up",
     "s": "down",
     "a": left,
@@ -274,6 +282,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     "pause": false,
     "targetX": 0,
     "targetY": 0,
+    "touched": false,
+    "touchX": 0,
+    "touchY": 0,
   };
 
   const justPressedInput = {
@@ -353,7 +364,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /** @type {SawBladesWeapon} */
   const sawBlades = {
     nam: "Saw Blades",
-    desc: "spinning blades",
+    desc: "Spinning blades",
     levels: fillLevels([
       {
         damage: 10,
@@ -372,20 +383,20 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     ]),
     tick(weapon, attrs) {
       const damage = attrs.damage + player.attrs.damage.val;
-      const area = attrs.area;
-      const baseAngle = weapon.tick * attrs.rotationSpeed;
-
+      const radius = attrs.radius * player.attrs.area.val;
+      const baseAngle =
+        weapon.tick * (attrs.rotationSpeed * player.attrs.attackSpeed.val);
       const anglePerBlade = PI2 / attrs.blades;
 
       for (let i = 0; i < attrs.blades; i++) {
         const angle = baseAngle + anglePerBlade * i;
-        const bladeX = player.x + cos(angle) * area;
-        const bladeY = player.y + sin(angle) * area;
+        const bladeX = player.x + cos(angle) * attrs.area;
+        const bladeY = player.y + sin(angle) * attrs.area;
 
         for (const enemy of enemies) {
           const dis = distance(enemy.x, enemy.y, bladeX, bladeY);
 
-          if (dis < attrs.radius / 2 + enemy.type.radius + 2) {
+          if (dis < radius / 2 + enemy.type.radius + 2) {
             enemy.health -= damage;
             enemy.hitTick = 0.1;
             enemy.pushBackX = cos(angle) * 20;
@@ -398,14 +409,17 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     },
     render(weapon, attrs) {
       const anglePerBlade = PI2 / attrs.blades;
-      const baseAngle = weapon.tick * attrs.rotationSpeed;
+      const baseAngle =
+        weapon.tick * (attrs.rotationSpeed * player.attrs.attackSpeed.val);
+
+      const radius = attrs.radius * player.attrs.area.val;
 
       for (let i = 0; i < attrs.blades; i++) {
         const angle = baseAngle + anglePerBlade * i;
         const bladeX = player.x + cos(angle) * attrs.area;
         const bladeY = player.y + sin(angle) * attrs.area;
 
-        draw.circle(bladeX, bladeY, attrs.radius / 2, white);
+        draw.circle(bladeX, bladeY, radius / 2, white);
       }
     },
     stats: (_, attrs, attrs1) => [
@@ -414,7 +428,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       [
         `speed`,
         optionalStatsDiff(attrs.rotationSpeed, attrs1?.rotationSpeed),
-        (s) => formatAngle(s) + "/s",
+        (s) => fAngle(s) + "/s",
       ],
       [`blades`, optionalStatsDiff(attrs.blades, attrs1?.blades)],
       [`size`, optionalStatsDiff(attrs.radius, attrs1?.radius)],
@@ -512,7 +526,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     stats: (_, attrs, attrs1) => [
       [`damage`, optionalStatsDiff(attrs.damage, attrs1?.damage)],
       [`range`, optionalStatsDiff(attrs.area, attrs1?.area)],
-      [`angle`, optionalStatsDiff(attrs.angle, attrs1?.angle), formatAngle],
+      [`angle`, optionalStatsDiff(attrs.angle, attrs1?.angle), fAngle],
     ],
   };
 
@@ -598,25 +612,81 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   /**
    * @typedef PlayerType
+   * @property {string} nam
    * @property {WeaponType[]} weapons
    * @property {Record<keyof Player['attrs'], AttributeEnhancer[]>} attrs
+   * @property {Partial<Record<keyof Player['attrs'], number>>} attrsWithLevel
+   * @property {(x: number, y: number) => void} render
    */
 
-  /** @type {PlayerType} t */
-  const warrior = {
-    weapons: [sword],
-    attrs: {
-      health: [50, baseIncreaseWithLevel(5)],
-      spd: [45, baseIncreaseWithLevel(0.2)],
-      healthRegen: [0.05, baseIncreaseWithLevel(0.025)],
-      pickupDistance: [50],
-      damage: [baseIncreaseWithLevel(0.3)],
-      attackSpeed: [1],
-      healthDrop: [0.01],
-      armor: [1],
-      area: [1],
+  /** @type {PlayerType[]} */
+  const playerTypes = [
+    {
+      nam: "Warrior",
+      weapons: [sword],
+      attrs: {
+        health: [50],
+        spd: [45],
+        healthRegen: [0.05],
+        pickupDistance: [50],
+        damage: [0],
+        attackSpeed: [1],
+        healthDrop: [0.01],
+        armor: [1],
+        area: [1],
+      },
+      attrsWithLevel: {
+        spd: 0.2,
+        healthRegen: 0.025,
+        damage: 0.3,
+      },
+      render: (x, y) => draw.box(x, y, 10, white),
     },
-  };
+    {
+      nam: "Monk",
+      weapons: [barbedWire],
+      attrs: {
+        health: [50],
+        spd: [60],
+        healthRegen: [0.05],
+        pickupDistance: [50],
+        damage: [0],
+        attackSpeed: [1],
+        healthDrop: [0.01],
+        armor: [0],
+        area: [1],
+      },
+      attrsWithLevel: {
+        healthRegen: 0.03,
+        pickupDistance: 1,
+        area: 0.025,
+      },
+      render: (x, y) => draw.triangle(x, y, 10, white),
+    },
+    {
+      nam: "Magic Man",
+      weapons: [sawBlades],
+      attrs: {
+        health: [50],
+        spd: [45],
+        healthRegen: [0.05],
+        pickupDistance: [50],
+        damage: [0],
+        attackSpeed: [1],
+        healthDrop: [0.01],
+        armor: [0],
+        area: [1],
+      },
+      attrsWithLevel: {
+        spd: 0.2,
+        attackSpeed: -0.026,
+        healthRegen: 0.03,
+        armor: 0.25,
+        area: 0.02,
+      },
+      render: (x, y) => draw.circle(x, y, 5, white),
+    },
+  ];
 
   /** @typedef {() => void} UpgradeApply */
   /** @typedef {() => boolean} UpgradeCondition */
@@ -630,6 +700,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @property {UpgradeCondition} [condition]
    * @property {() => number} [wght]
    */
+
+  const baseWeight = 100;
 
   /**
    * @param {WeaponType} weapon
@@ -660,7 +732,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         const stats = existing.typ.stats(existing, currentLevel, nextLevel);
         const desc = stats
           .filter((s) => !!s[1])
-          .map(([l, v, f = formatNumber]) => `+${f(v)} ${l}`)
+          .map(([l, v, f = fNumber]) => `+${f(v)} ${l}`)
           .join(", ");
 
         cache = {
@@ -680,7 +752,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         }
       },
       // New weapons have smaller probability than weapon level ups
-      wght: () => (player.weapons.some((w) => w.typ === weapon) ? 10 : 4),
+      wght: () =>
+        player.weapons.some((w) => w.typ === weapon) ? baseWeight : 25,
       maxCount: weapon.levels.length - 1,
     };
   };
@@ -842,6 +915,15 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    */
 
   /**
+   * @param {AttributeEnhancer[]} base
+   * @param {number | undefined} withLevel
+   */
+  const joinAttrs = (base, withLevel) => [
+    ...base,
+    ...(withLevel ? [baseIncreaseWithLevel(withLevel)] : []),
+  ];
+
+  /**
    * @param {PlayerType} typ
    * @returns {Player}
    */
@@ -863,15 +945,29 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
     // Attribute values
     attrs: {
-      spd: createAttribute(typ.attrs.spd),
-      health: createAttribute(typ.attrs.health),
-      healthRegen: createAttribute(typ.attrs.healthRegen),
-      pickupDistance: createAttribute(typ.attrs.pickupDistance),
-      damage: createAttribute(typ.attrs.damage),
-      attackSpeed: createAttribute(typ.attrs.attackSpeed),
-      healthDrop: createAttribute(typ.attrs.healthDrop),
-      armor: createAttribute(typ.attrs.armor),
-      area: createAttribute(typ.attrs.area),
+      spd: createAttribute(joinAttrs(typ.attrs.spd, typ.attrsWithLevel.spd)),
+      health: createAttribute(
+        joinAttrs(typ.attrs.health, typ.attrsWithLevel.health),
+      ),
+      healthRegen: createAttribute(
+        joinAttrs(typ.attrs.healthRegen, typ.attrsWithLevel.healthRegen),
+      ),
+      pickupDistance: createAttribute(
+        joinAttrs(typ.attrs.pickupDistance, typ.attrsWithLevel.pickupDistance),
+      ),
+      damage: createAttribute(
+        joinAttrs(typ.attrs.damage, typ.attrsWithLevel.damage),
+      ),
+      attackSpeed: createAttribute(
+        joinAttrs(typ.attrs.attackSpeed, typ.attrsWithLevel.attackSpeed),
+      ),
+      healthDrop: createAttribute(
+        joinAttrs(typ.attrs.healthDrop, typ.attrsWithLevel.healthDrop),
+      ),
+      armor: createAttribute(
+        joinAttrs(typ.attrs.armor, typ.attrsWithLevel.armor),
+      ),
+      area: createAttribute(joinAttrs(typ.attrs.area, typ.attrsWithLevel.area)),
     },
 
     // Already applied upgrades
@@ -881,7 +977,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     weapons: typ.weapons.map((w) => initializeWeapon(w)),
   });
 
-  const player = createPlayer(warrior);
+  const player = createPlayer(playerTypes[0]);
 
   const MANAGER_STATES = {
     RUNNING: 0,
@@ -890,6 +986,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     PAUSED: 3,
     WIN: 4,
     START: 5,
+    PICKING_PLAYER: 6,
   };
 
   const startingManagerState = {
@@ -900,7 +997,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     spawnTimeout: 0,
     /** @type {Upgrade[]} */
     upgrades: [],
-    selectedUpgradeIndex: 0,
+    selectedIndex: 0,
   };
 
   const manager = {
@@ -1250,7 +1347,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       weapon.typ.render(weapon, weapon.typ.levels[weapon.lvl]);
     }
 
-    draw.rect(player.x - 5, player.y - 5, 10, 10, white);
+    player.typ.render(player.x, player.y);
   };
 
   const renderEnemies = () => {
@@ -1286,35 +1383,77 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     }
   };
 
+  const statLabel = {
+    damage: "Base damage",
+    attackSpeed: "Attack speed",
+    area: "Area",
+    health: "Health",
+    healthRegen: "Regen",
+    armor: "Armor",
+    spd: "Speed",
+    healthDrop: "Health Drop",
+    pickupDistance: "Pickup Distance",
+  };
+
+  /**
+   * @param {string} value
+   */
+  const perLevel = (value) => `${value}/level`;
+
+  /**
+   * @param {Player} player
+   * @param {boolean} [includePerLevel]
+   */
+  const getPlayerStats = (player, includePerLevel) => {
+    const stats = [
+      [statLabel.damage, fNumber(player.attrs.damage.val)],
+      [statLabel.attackSpeed, fNumber(2 - player.attrs.attackSpeed.val, 2)],
+      [statLabel.area, fNumber(player.attrs.area.val, 2)],
+      [statLabel.health, floor(player.attrs.health.val)],
+      [statLabel.healthRegen, fNumber(player.attrs.healthRegen.val, 2) + "/s"],
+      [statLabel.armor, fNumber(player.attrs.armor.val)],
+      [statLabel.spd, fNumber(player.attrs.spd.val, 2)],
+      [statLabel.healthDrop, fNumber(player.attrs.healthDrop.val * 100) + "%"],
+      [statLabel.pickupDistance, fNumber(player.attrs.pickupDistance.val)],
+    ];
+
+    const add = stats.push.bind(stats);
+
+    if (includePerLevel) {
+      add([]);
+
+      add(
+        ...Object.entries(player.typ.attrsWithLevel).map(([key, value]) => [
+          statLabel[key],
+          perLevel(fNumber(abs(value), 2)),
+        ]),
+      );
+
+      add([]);
+    }
+
+    for (const weapon of player.weapons) {
+      const name = weapon.typ.nam;
+
+      add(
+        [`${name} level`, weapon.lvl + 1],
+        ...weapon.typ
+          // @ts-expect-error can't be bothered to fight the level type here
+          .stats(weapon, weapon.typ.levels[weapon.lvl])
+          .map(([l, v, f = fNumber]) => [`${name} ${l}`, f(v)]),
+      );
+    }
+
+    return stats;
+  };
+
   /**
    * @param {number} x
    * @param {number} y
    * @param {number} w
    */
   const renderPlayerStatsUi = (x, y, w) => {
-    const stats = [
-      ["Base damage", formatNumber(player.attrs.damage.val)],
-      ["Attack speed", formatNumber(2 - player.attrs.attackSpeed.val, 2)],
-      ["Area", formatNumber(player.attrs.area.val, 2)],
-      ["Health", floor(player.attrs.health.val)],
-      ["Regen", formatNumber(player.attrs.healthRegen.val, 2) + "/s"],
-      ["Armor", formatNumber(player.attrs.armor.val)],
-      ["Speed", formatNumber(player.attrs.spd.val, 2)],
-      ["Health Drop", formatNumber(player.attrs.healthDrop.val * 100) + "%"],
-    ];
-
-    for (const weapon of player.weapons) {
-      const name = weapon.typ.nam;
-
-      stats.push(
-        [`${name} level`, weapon.lvl + 1],
-        ...weapon.typ
-          // @ts-expect-error can't be bothered to fight the level type here
-          .stats(weapon, weapon.typ.levels[weapon.lvl])
-          .map(([l, v, f = formatNumber]) => [`${name} ${l}`, f(v)]),
-      );
-    }
-
+    const stats = getPlayerStats(player);
     renderStatsTable(x, y, w, height - y - 40, stats);
   };
 
@@ -1327,8 +1466,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     const stats = [
       [`Survived`, formatTime(manager.runtime)],
       [`Level`, `${player.lvl + 1}`],
-      [`Damage`, formatNumber(manager.damageDone)],
-      [`DPS`, `${formatNumber(manager.damageDone / manager.runtime, 2)}`],
+      [`Damage`, fNumber(manager.damageDone)],
+      [`DPS`, `${fNumber(manager.damageDone / manager.runtime, 2)}`],
       [`Kills`, `${manager.kills}`],
     ];
 
@@ -1393,6 +1532,43 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     }
   };
 
+  /**
+   * @template T
+   * @param {number} x
+   * @param {number} y
+   * @param {number} itemWidth
+   * @param {number} itemHeight
+   * @param {(x: number, y: number, item: T) => void} renderItem
+   * @param {T[]} items
+   * @returns
+   */
+  const renderSelectable = (x, y, itemWidth, itemHeight, renderItem, items) => {
+    for (let i = 0; i < items.length; i++) {
+      draw.rect(
+        x,
+        y,
+        itemWidth,
+        itemHeight,
+        i === manager.selectedIndex ? "#333" : "#222",
+      );
+
+      draw.rect(
+        x,
+        y,
+        itemWidth,
+        itemHeight,
+        i === manager.selectedIndex ? "#aa3" : "#444",
+        true,
+      );
+
+      renderItem(x, y, items[i]);
+
+      y += itemHeight + 5;
+    }
+
+    return y;
+  };
+
   const renderUI = () => {
     if (manager.gameState !== MANAGER_STATES.START) {
       renderIngameUI();
@@ -1417,47 +1593,60 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         draw.overlay();
         draw.text(w2, 10, "LEVEL UP", white, center, top);
 
-        for (let i = 0; i < manager.upgrades.length; i++) {
-          const upgrade = manager.upgrades[i];
-          // TODO: Cache this somehow?
-          const alreadyApplied = player.upgrades.filter(
-            (u) => u === upgrade,
-          ).length;
+        renderSelectable(
+          20,
+          50,
+          width - 40,
+          40,
+          (x, y, upgrade) => {
+            const alreadyApplied = player.upgrades.filter(
+              (u) => u === upgrade,
+            ).length;
 
-          const x = 20;
-          const y = 50 + i * 50;
+            draw.text(x + 5, y + 5, upgrade.nam, white);
+            draw.text(x + 5, y + 22, fnOrV(upgrade.desc), lightGray);
 
-          draw.rect(
-            x,
-            y,
-            width - 40,
-            40,
-            i === manager.selectedUpgradeIndex ? "#333" : "#222",
-          );
-
-          draw.rect(
-            x,
-            y,
-            width - 40,
-            40,
-            i === manager.selectedUpgradeIndex ? "#aa3" : "#444",
-            true,
-          );
-
-          draw.text(x + 5, y + 5, upgrade.nam, white);
-          draw.text(x + 5, y + 22, fnOrV(upgrade.desc), lightGray);
-
-          draw.text(
-            x + width - 50,
-            y + 20,
-            alreadyApplied + "/" + (upgrade.maxCount ?? 5),
-            lightGray,
-            right,
-            middle,
-          );
-        }
+            draw.text(
+              x + width - 50,
+              y + 20,
+              alreadyApplied + "/" + (upgrade.maxCount ?? 5),
+              lightGray,
+              right,
+              middle,
+            );
+          },
+          manager.upgrades,
+        );
 
         renderPlayerStatsUi(20, 50 + 3 * 50 + 10, width - 40);
+        break;
+      }
+
+      case MANAGER_STATES.PICKING_PLAYER: {
+        draw.overlay();
+        draw.text(w2, 10, "PICK CLASS", white, center, top);
+
+        renderSelectable(
+          20,
+          50,
+          100,
+          20,
+          (x, y, type) => {
+            type.render(x + 10, y + 10);
+            draw.text(x + 20, y + 10, type.nam, white, left, middle);
+          },
+          playerTypes,
+        );
+
+        const type = playerTypes[manager.selectedIndex];
+
+        if (player.typ !== type) {
+          Object.assign(player, createPlayer(type));
+        }
+
+        const stats = getPlayerStats(player, true);
+        renderStatsTable(140, 30, width - 140 - 20, height - 60, stats, false);
+
         break;
       }
 
@@ -1680,8 +1869,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     );
   };
 
-  const startNewGame = () => {
-    Object.assign(player, createPlayer(warrior));
+  /**
+   * @param {PlayerType} playerType
+   */
+  const startNewGame = (playerType) => {
+    Object.assign(player, createPlayer(playerType));
     Object.assign(manager, startingManagerState);
 
     manager.gameState = MANAGER_STATES.RUNNING;
@@ -1748,25 +1940,45 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       case MANAGER_STATES.DEAD:
       case MANAGER_STATES.START:
         if (input.enter) {
-          startNewGame();
+          manager.selectedIndex = 0;
+          Object.assign(player, createPlayer(playerTypes[0]));
+          manager.gameState = MANAGER_STATES.PICKING_PLAYER;
+        }
+
+        break;
+
+      case MANAGER_STATES.PICKING_PLAYER:
+        if (justPressedInput.enter) {
+          startNewGame(playerTypes[manager.selectedIndex]);
+        }
+
+        if (justPressedInput.up && manager.selectedIndex > 0) {
+          manager.selectedIndex--;
+        }
+
+        if (
+          justPressedInput.down &&
+          manager.selectedIndex < playerTypes.length - 1
+        ) {
+          manager.selectedIndex++;
         }
 
         break;
 
       case MANAGER_STATES.PICKING_UPGRADE:
-        if (justPressedInput.up && manager.selectedUpgradeIndex > 0) {
-          manager.selectedUpgradeIndex--;
+        if (justPressedInput.up && manager.selectedIndex > 0) {
+          manager.selectedIndex--;
         }
 
         if (
           justPressedInput.down &&
-          manager.selectedUpgradeIndex < manager.upgrades.length - 1
+          manager.selectedIndex < manager.upgrades.length - 1
         ) {
-          manager.selectedUpgradeIndex++;
+          manager.selectedIndex++;
         }
 
         if (justPressedInput.enter) {
-          const upgrade = manager.upgrades[manager.selectedUpgradeIndex];
+          const upgrade = manager.upgrades[manager.selectedIndex];
           upgrade.use();
           player.upgrades.push(upgrade);
           manager.gameState = MANAGER_STATES.RUNNING;
@@ -1839,13 +2051,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         })
         .map((u) => ({
           val: u,
-          weight: u.wght?.() ?? 10,
+          weight: u.wght?.() ?? baseWeight,
         }));
 
-      manager.upgrades = weightedShuffleArray(availableUpgrades).slice(0, 3);
+      manager.upgrades = weightedPickItems(availableUpgrades, 3);
 
       if (manager.upgrades.length > 0) {
         manager.gameState = MANAGER_STATES.PICKING_UPGRADE;
+        manager.selectedIndex = 0;
       }
 
       player.health += 5;
