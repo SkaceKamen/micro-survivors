@@ -2,7 +2,6 @@
 function microSurvivors(target = document.body, width = 400, height = 400) {
   /*
   TODO:
-   - add area attribute
    - phone support?
    - audio?
    - more player types:
@@ -342,6 +341,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @template TLevel
    * @typedef WeaponTypeBase
    * @property {string} nam
+   * @property {string} desc
    * @property {TLevel[]} levels
    * @property {(weapon: Weapon, level: TLevel) => void} render
    * @property {(weapon: Weapon, level: TLevel) => void} tick
@@ -365,6 +365,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /** @type {SawBladesWeapon} */
   const sawBlades = {
     nam: "Saw Blades",
+    desc: "spinning blades",
     levels: fillLevels([
       {
         damage: 10,
@@ -383,13 +384,15 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     ]),
     tick(weapon, attrs) {
       const damage = attrs.damage + player.attrs.damage.val;
-      const anglePerBlade = PI2 / attrs.blades;
+      const area = attrs.area;
       const baseAngle = weapon.tick * attrs.rotationSpeed;
+
+      const anglePerBlade = PI2 / attrs.blades;
 
       for (let i = 0; i < attrs.blades; i++) {
         const angle = baseAngle + anglePerBlade * i;
-        const bladeX = player.x + cos(angle) * attrs.area;
-        const bladeY = player.y + sin(angle) * attrs.area;
+        const bladeX = player.x + cos(angle) * area;
+        const bladeY = player.y + sin(angle) * area;
 
         for (const enemy of enemies) {
           const dis = distance(enemy.x, enemy.y, bladeX, bladeY);
@@ -452,6 +455,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /** @type {MeleeWeapon} */
   const sword = {
     nam: "Sword",
+    desc: "melee weapon",
     levels: fillLevels([
       { damage: 8, angle: PI / 4, area: 80, damageRate: 0.5 },
       { damage: 13 },
@@ -463,6 +467,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     ]),
     tick(_, attrs) {
       const damage = attrs.damage + player.attrs.damage.val;
+      const area = attrs.area * player.attrs.area.val;
 
       const coneA2 = attrs.angle / 2;
       const coneStart = player.meleeDirection - coneA2;
@@ -476,7 +481,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         const offset = atan2(enemy.type.radius / 2, distance);
 
         if (angle + offset > coneStart && angle - offset < coneEnd) {
-          if (distance - enemy.type.radius / 2 < attrs.area) {
+          if (distance - enemy.type.radius / 2 < area) {
             enemy.health -= damage;
             enemy.hitTick = 0.1;
             enemy.pushBackX = cos(angle) * 25;
@@ -489,6 +494,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     },
     render(weapon, attrs) {
       const rate = attrs.damageRate * player.attrs.attackSpeed.val;
+      const area = attrs.area * player.attrs.area.val;
       const delta = weapon.damageTick / rate;
       const alpha = delta * 0.2;
 
@@ -499,14 +505,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         ctx.beginPath();
         ctx.moveTo(player.x, player.y);
         ctx.lineTo(
-          player.x + cos(player.meleeDirection - coneA2) * attrs.area,
-          player.y + sin(player.meleeDirection - coneA2) * attrs.area,
+          player.x + cos(player.meleeDirection - coneA2) * area,
+          player.y + sin(player.meleeDirection - coneA2) * area,
         );
 
         ctx.arc(
           player.x,
           player.y,
-          attrs.area,
+          area,
           player.meleeDirection - coneA2,
           player.meleeDirection + coneA2,
         );
@@ -536,6 +542,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /** @type {AreaWeapon} */
   const barbedWire = {
     nam: "Barbed Wire",
+    desc: "area damage",
     levels: fillLevels([
       { area: 40, damage: 2, damageRate: 0.75 },
       { area: 60 },
@@ -546,11 +553,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     ]),
     tick(_, attrs) {
       const damage = attrs.damage + player.attrs.damage.val;
+      const area = attrs.area * player.attrs.area.val;
 
       for (const enemy of enemies) {
         const dis = distance(player.x, player.y, enemy.x, enemy.y);
 
-        if (dis < attrs.area) {
+        if (dis < area) {
           enemy.health -= damage;
           enemy.hitTick = 0.1;
 
@@ -564,10 +572,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     },
     render(weapon, attrs) {
       const rate = attrs.damageRate * player.attrs.attackSpeed.val;
+      const area = attrs.area * player.attrs.area.val;
+
       const delta = weapon.damageTick / rate;
       const alpha = 0.15 + cos(delta * 2 * PI) * 0.04;
 
-      draw.circle(player.x, player.y, attrs.area, `rgba(255,0,0,${alpha})`);
+      draw.circle(player.x, player.y, area, `rgba(255,0,0,${alpha})`);
     },
     stats: (_, attrs, attrs1) => [
       [`damage`, optionalStatsDiff(attrs.damage, attrs1?.damage)],
@@ -616,6 +626,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       attackSpeed: [1],
       healthDrop: [0.01],
       armor: [1],
+      area: [1],
     },
   };
 
@@ -627,7 +638,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @property {string} nam
    * @property {string | (() => string)} desc
    * @property {UpgradeApply} use
-   * @property {number} maxCount
+   * @property {number} [maxCount=5]
    * @property {UpgradeCondition} [condition]
    * @property {() => number} [wght]
    */
@@ -647,7 +658,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           cache?.existing ?? player.weapons.find((w) => w.typ === weapon);
 
         if (!existing) {
-          return "New weapon";
+          return weapon.desc;
         }
 
         if (cache?.lvl === existing.lvl) {
@@ -694,7 +705,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       use() {
         player.attrs.spd.multiplier.push(0.05);
       },
-      maxCount: 5,
     },
     {
       nam: "Speed base",
@@ -702,7 +712,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       use() {
         player.attrs.spd.base.push(1);
       },
-      maxCount: 5,
     },
     {
       nam: "Max health",
@@ -711,7 +720,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         player.attrs.health.base.push(25);
         player.health += 5;
       },
-      maxCount: 5,
     },
     {
       nam: "Health drop",
@@ -719,43 +727,41 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       use: () => {
         player.attrs.healthDrop.base.push(0.01);
       },
-      maxCount: 5,
     },
     {
       nam: "Regen",
       desc: "+0.05/s health regen",
       use: () => player.attrs.healthRegen.base.push(0.05),
-      maxCount: 5,
     },
     {
       nam: "Regen boost",
       desc: "+10% health regen",
       use: () => player.attrs.healthRegen.multiplier.push(0.1),
-      maxCount: 5,
     },
     {
       nam: "Pickup range",
       desc: "+10 pickup range",
       use: () => player.attrs.pickupDistance.base.push(10),
-      maxCount: 5,
     },
     {
       nam: "Damage",
       desc: "+1 damage",
       use: () => player.attrs.damage.base.push(1),
-      maxCount: 5,
     },
     {
       nam: "Attack speed",
       desc: "+5% attack speed",
       use: () => player.attrs.attackSpeed.base.push(-0.05),
-      maxCount: 5,
     },
     {
       nam: "Armor",
       desc: "+1 armor",
       use: () => player.attrs.armor.base.push(1),
-      maxCount: 5,
+    },
+    {
+      nam: "Area",
+      desc: "+10% area",
+      use: () => player.attrs.area.base.push(0.1),
     },
     weaponUpgrade(sawBlades),
     weaponUpgrade(sword),
@@ -842,6 +848,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @property {PlayerAttribute} attrs.attackSpeed
    * @property {PlayerAttribute} attrs.healthDrop
    * @property {PlayerAttribute} attrs.armor
+   * @property {PlayerAttribute} attrs.area
    * @property {Upgrade[]} upgrades
    * @property {Weapon[]} weapons
    */
@@ -876,6 +883,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       attackSpeed: createAttribute(typ.attrs.attackSpeed),
       healthDrop: createAttribute(typ.attrs.healthDrop),
       armor: createAttribute(typ.attrs.armor),
+      area: createAttribute(typ.attrs.area),
     },
 
     // Already applied upgrades
@@ -1299,6 +1307,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     const stats = [
       ["Base damage", formatNumber(player.attrs.damage.val)],
       ["Attack speed", formatNumber(2 - player.attrs.attackSpeed.val, 2)],
+      ["Area", formatNumber(player.attrs.area.val, 2)],
       ["Health", floor(player.attrs.health.val)],
       ["Regen", formatNumber(player.attrs.healthRegen.val, 2) + "/s"],
       ["Armor", formatNumber(player.attrs.armor.val)],
@@ -1453,7 +1462,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           draw.text(
             x + width - 50,
             y + 20,
-            alreadyApplied + "/" + upgrade.maxCount,
+            alreadyApplied + "/" + (upgrade.maxCount ?? 5),
             lightGray,
             right,
             middle,
@@ -1832,9 +1841,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           }
 
           if (
-            upgrade.maxCount &&
             player.upgrades.filter((u) => u === upgrade).length >=
-              upgrade.maxCount
+            (upgrade.maxCount ?? 5)
           ) {
             return false;
           }
