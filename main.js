@@ -693,7 +693,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @property {string | (() => string)} desc
    * @property {UpgradeApply} use
    * @property {number} [maxCount=5]
-   * @property {UpgradeCondition} [condition]
+   * @property {UpgradeCondition} [cond]
    * @property {() => number} [wght]
    */
 
@@ -976,24 +976,24 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const player = createPlayer(playerTypes[0]);
 
   const MANAGER_STATES = {
-    RUNNING: 0,
+    IN_PROGRESS: 0,
     DEAD: 1,
     PICKING_UPGRADE: 2,
     PAUSED: 3,
-    WIN: 4,
+    WON: 4,
     START: 5,
     PICKING_PLAYER: 6,
   };
 
   const startingManagerState = {
     lastSpawnRate: -1,
-    runtime: 0,
+    gameRuntime: 0,
     damageDone: 0,
     kills: 0,
     spawnTimeout: 0,
     /** @type {Upgrade[]} */
     upgrades: [],
-    selectedIndex: 0,
+    selIndex: 0,
   };
 
   const manager = {
@@ -1469,10 +1469,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    */
   const renderSurvivalStatsUi = (x, y, w) => {
     const stats = [
-      [`Survived`, formatTime(manager.runtime)],
+      [`Survived`, formatTime(manager.gameRuntime)],
       [`Level`, `${player.lvl + 1}`],
       [`Damage`, fNumber(manager.damageDone)],
-      [`DPS`, `${fNumber(manager.damageDone / manager.runtime, 2)}`],
+      [`DPS`, `${fNumber(manager.damageDone / manager.gameRuntime, 2)}`],
       [`Kills`, `${manager.kills}`],
     ];
 
@@ -1526,9 +1526,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     draw.text(25, 2, "level", "#666", center, top);
     draw.text(25, 18, `${player.lvl + 1}`, white, center, top);
 
-    draw.text(w2, 35, formatTime(manager.runtime), white, center);
+    draw.text(w2, 35, formatTime(manager.gameRuntime), white, center);
 
-    if (manager.runtime < 20) {
+    if (manager.gameRuntime < 20) {
       let y = height - 30 - help.length * 15;
       for (const text of help) {
         draw.text(10, y, text, white, left, top);
@@ -1554,7 +1554,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         y,
         itemWidth,
         itemHeight,
-        i === manager.selectedIndex ? "#333" : "#222",
+        i === manager.selIndex ? "#333" : "#222",
       );
 
       draw.rect(
@@ -1562,7 +1562,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         y,
         itemWidth,
         itemHeight,
-        i === manager.selectedIndex ? "#aa3" : "#444",
+        i === manager.selIndex ? "#aa3" : "#444",
         true,
       );
 
@@ -1643,7 +1643,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           playerTypes,
         );
 
-        const type = playerTypes[manager.selectedIndex];
+        const type = playerTypes[manager.selIndex];
 
         if (player.typ !== type) {
           assignPlayer(type);
@@ -1662,7 +1662,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         break;
       }
 
-      case MANAGER_STATES.WIN: {
+      case MANAGER_STATES.WON: {
         draw.overlay();
         draw.text(w2, 100, "YOU WON", white, center, middle);
 
@@ -1734,7 +1734,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const gameLogicTick = (deltaTime) => {
     managerTick(deltaTime);
 
-    if (manager.gameState === MANAGER_STATES.RUNNING) {
+    if (manager.gameState === MANAGER_STATES.IN_PROGRESS) {
       enemiesTick(deltaTime);
       pickupsTick(deltaTime);
       playerTick(deltaTime);
@@ -1879,7 +1879,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     assignPlayer(playerType);
     Object.assign(manager, startingManagerState);
 
-    manager.gameState = MANAGER_STATES.RUNNING;
+    manager.gameState = MANAGER_STATES.IN_PROGRESS;
     enemies.length = 0;
     pickups.length = 0;
   };
@@ -1889,8 +1889,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    */
   const managerTick = (deltaTime) => {
     switch (manager.gameState) {
-      case MANAGER_STATES.RUNNING: {
-        manager.runtime += deltaTime;
+      case MANAGER_STATES.IN_PROGRESS: {
+        manager.gameRuntime += deltaTime;
 
         if (justPressedInput.pause) {
           manager.gameState = MANAGER_STATES.PAUSED;
@@ -1901,15 +1901,16 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         }
 
         const spawnRateIndex =
-          spawnRates.findIndex((rate) => rate.fromRuntime > manager.runtime) -
-          1;
+          spawnRates.findIndex(
+            (rate) => rate.fromRuntime > manager.gameRuntime,
+          ) - 1;
         const spawnRate =
           spawnRates[
             spawnRateIndex < 0 ? spawnRates.length - 1 : spawnRateIndex
           ];
 
         if (spawnRateIndex === -2 && enemies.length === 0) {
-          manager.gameState = MANAGER_STATES.WIN;
+          manager.gameState = MANAGER_STATES.WON;
         }
 
         if (spawnRate) {
@@ -1939,11 +1940,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         break;
       }
 
-      case MANAGER_STATES.WIN:
+      case MANAGER_STATES.WON:
       case MANAGER_STATES.DEAD:
       case MANAGER_STATES.START:
         if (input.enter) {
-          manager.selectedIndex = 0;
+          manager.selIndex = 0;
           assignPlayer(playerTypes[0]);
           manager.gameState = MANAGER_STATES.PICKING_PLAYER;
         }
@@ -1952,46 +1953,46 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       case MANAGER_STATES.PICKING_PLAYER:
         if (justPressedInput.enter) {
-          startNewGame(playerTypes[manager.selectedIndex]);
+          startNewGame(playerTypes[manager.selIndex]);
         }
 
-        if (justPressedInput.up && manager.selectedIndex > 0) {
-          manager.selectedIndex--;
+        if (justPressedInput.up && manager.selIndex > 0) {
+          manager.selIndex--;
         }
 
         if (
           justPressedInput.down &&
-          manager.selectedIndex < playerTypes.length - 1
+          manager.selIndex < playerTypes.length - 1
         ) {
-          manager.selectedIndex++;
+          manager.selIndex++;
         }
 
         break;
 
       case MANAGER_STATES.PICKING_UPGRADE:
-        if (justPressedInput.up && manager.selectedIndex > 0) {
-          manager.selectedIndex--;
+        if (justPressedInput.up && manager.selIndex > 0) {
+          manager.selIndex--;
         }
 
         if (
           justPressedInput.down &&
-          manager.selectedIndex < manager.upgrades.length - 1
+          manager.selIndex < manager.upgrades.length - 1
         ) {
-          manager.selectedIndex++;
+          manager.selIndex++;
         }
 
         if (justPressedInput.enter) {
-          const upgrade = manager.upgrades[manager.selectedIndex];
+          const upgrade = manager.upgrades[manager.selIndex];
           upgrade.use();
           player.upgrades.push(upgrade);
-          manager.gameState = MANAGER_STATES.RUNNING;
+          manager.gameState = MANAGER_STATES.IN_PROGRESS;
         }
 
         break;
 
       case MANAGER_STATES.PAUSED:
         if (justPressedInput.pause || justPressedInput.enter) {
-          manager.gameState = MANAGER_STATES.RUNNING;
+          manager.gameState = MANAGER_STATES.IN_PROGRESS;
         }
 
         break;
@@ -2039,7 +2040,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       const availableUpgrades = upgrades
         .filter((upgrade) => {
-          if (upgrade.condition && !upgrade.condition()) {
+          if (upgrade.cond && !upgrade.cond()) {
             return false;
           }
 
@@ -2061,7 +2062,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       if (manager.upgrades.length > 0) {
         manager.gameState = MANAGER_STATES.PICKING_UPGRADE;
-        manager.selectedIndex = 0;
+        manager.selIndex = 0;
       }
 
       player.health += 5;
