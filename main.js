@@ -263,7 +263,7 @@ const sawBlades = {
     {
       damage: 10,
       range: 50,
-      rotationSpeed: Math.PI / 4,
+      rotationSpeed: Math.PI / 1.5,
       damageRate: 0.1,
       blades: 2,
       size: 10,
@@ -271,7 +271,7 @@ const sawBlades = {
     {
       damage: 10,
       range: 50,
-      rotationSpeed: Math.PI / 4,
+      rotationSpeed: Math.PI / 1.25,
       damageRate: 0.1,
       blades: 2,
       size: 15,
@@ -279,7 +279,7 @@ const sawBlades = {
     {
       damage: 10,
       range: 50,
-      rotationSpeed: Math.PI / 4,
+      rotationSpeed: Math.PI / 1.25,
       damageRate: 0.1,
       blades: 3,
       size: 15,
@@ -287,7 +287,7 @@ const sawBlades = {
     {
       damage: 15,
       range: 50,
-      rotationSpeed: Math.PI / 4,
+      rotationSpeed: Math.PI / 1.25,
       damageRate: 0.1,
       blades: 3,
       size: 15,
@@ -295,7 +295,7 @@ const sawBlades = {
     {
       damage: 15,
       range: 50,
-      rotationSpeed: Math.PI / 4,
+      rotationSpeed: Math.PI / 1.25,
       damageRate: 0.1,
       blades: 4,
       size: 15,
@@ -1014,12 +1014,14 @@ function renderPlayer() {
 
       case WEAPON_TYPES.MELEE: {
         const attrs = weapon.type.levels[weapon.level];
+        const rate = attrs.attackRate * player.attrs.attackSpeed.value;
+        const delta = weapon.damageTick / rate;
+        const alpha = delta * 0.2;
 
-        const coneD = 0.2 + (weapon.damageTick - attrs.attackRate);
-        if (coneD > 0) {
+        if (alpha > 0) {
           const coneA2 = attrs.angle / 2;
 
-          ctx.fillStyle = `rgba(255, 255, 255, ${coneD})`;
+          ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
           ctx.beginPath();
           ctx.moveTo(player.x, player.y);
           ctx.lineTo(
@@ -1044,8 +1046,16 @@ function renderPlayer() {
 
       case WEAPON_TYPES.AREA: {
         const attrs = weapon.type.levels[weapon.level];
+        const rate = attrs.attackRate * player.attrs.attackSpeed.value;
+        const delta = weapon.damageTick / rate;
+        const alpha = 0.15 + Math.cos(delta * 2 * Math.PI) * 0.02;
 
-        draw.circle(player.x, player.y, attrs.range, "rgba(255, 0, 0, 0.2)");
+        draw.circle(
+          player.x,
+          player.y,
+          attrs.range,
+          `rgba(255, 0, 0, ${alpha})`
+        );
 
         break;
       }
