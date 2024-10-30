@@ -596,6 +596,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       damage: [baseIncreaseWithLevel(0.3)],
       attackSpeed: [1],
       healthDrop: [0.01],
+      armor: [1],
     },
   };
 
@@ -728,6 +729,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       use: () => player.attrs.attackSpeed.base.push(-0.05),
       maxCount: 5,
     },
+    {
+      nam: "Armor",
+      desc: "+1 armor",
+      use: () => player.attrs.armor.base.push(1),
+      maxCount: 5,
+    },
     weaponUpgrade(sawBlades),
     weaponUpgrade(sword),
     weaponUpgrade(barbedWire),
@@ -812,6 +819,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @property {PlayerAttribute} attrs.damage
    * @property {PlayerAttribute} attrs.attackSpeed
    * @property {PlayerAttribute} attrs.healthDrop
+   * @property {PlayerAttribute} attrs.armor
    * @property {Upgrade[]} upgrades
    * @property {Weapon[]} weapons
    */
@@ -845,6 +853,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       damage: createAttribute(typ.attrs.damage),
       attackSpeed: createAttribute(typ.attrs.attackSpeed),
       healthDrop: createAttribute(typ.attrs.healthDrop),
+      armor: createAttribute(typ.attrs.armor),
     },
 
     // Already applied upgrades
@@ -1270,6 +1279,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       ["Attack speed", formatNumber(2 - player.attrs.attackSpeed.val, 2)],
       ["Health", floor(player.attrs.health.val)],
       ["Regen", formatNumber(player.attrs.healthRegen.val, 2) + "/s"],
+      ["Armor", formatNumber(player.attrs.armor.val)],
       ["Speed", formatNumber(player.attrs.spd.val, 2)],
       ["Health Drop", formatNumber(player.attrs.healthDrop.val * 100) + "%"],
     ];
@@ -1574,7 +1584,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       if (enemy.damageTick <= 0) {
         // Damage player when close
         if (distance < enemy.type.radius - 2) {
-          player.health -= type.damage;
+          player.health -= Math.max(0, type.damage - player.attrs.armor.val);
           player.lastDamagedTick = 0.5;
           enemy.damageTick = type.damageTick;
         }
