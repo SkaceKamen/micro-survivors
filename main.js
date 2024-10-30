@@ -821,9 +821,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     {
       nam: "Health drop",
       desc: "+1% health drop chance",
-      use: () => {
-        player.attrs.healthDrop.base += 0.01;
-      },
+      use: () => (player.attrs.healthDrop.base += 0.01),
     },
     {
       nam: "Regen",
