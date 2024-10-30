@@ -1,0 +1,15 @@
+{
+  "name": "micro-survivor",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "minify": "uglify-js -m -c --mangle-props \"keep_quoted\" main.js -o main.min.js"
+  },
+  "author": "Jan Zipek <jan@zipek.cz>",
+  "license": "MIT",
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "uglify-js": "^3.19.3"
+  }
+}
