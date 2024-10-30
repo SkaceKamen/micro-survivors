@@ -1,4 +1,4 @@
-# Micro Survivor
+# Micro Survivors
 
 Tiny survivors-like game that fits under 14 kB of minified JS code.
 
