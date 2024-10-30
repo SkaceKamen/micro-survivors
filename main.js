@@ -1282,9 +1282,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    */
   function renderSurvivalStatsUi(x, y, w) {
     const stats = [
-      [`Survived for`, formatTime(manager.runtime)],
+      [`Survived`, formatTime(manager.runtime)],
       [`Level`, `${player.level + 1}`],
-      [`Damage done`, f(manager.damageDone)],
+      [`Damage`, f(manager.damageDone)],
       [`DPS`, `${f(manager.damageDone / manager.runtime, 2)}`],
       [`Kills`, `${manager.kills}`],
     ];
