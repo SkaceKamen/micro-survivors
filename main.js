@@ -477,7 +477,7 @@ const draw = {
   },
 };
 
-/** @typedef {{ health: number; speed: number; damage: number; damageTick: number; experience: number; boss?: boolean; render: (x: number, y: number, hit: boolean) => void}} EnemyType */
+/** @typedef {{ health: number; speed: number; damage: number; damageTick: number; experience: number; boss?: boolean; pushBackResistance?: number; render: (x: number, y: number, hit: boolean) => void}} EnemyType */
 /** @param {EnemyType} type */
 const createEnemy = (type) => type;
 
@@ -498,7 +498,20 @@ const boxLevel2 = createEnemy({
   experience: 2,
   render: (x, y, hit) => {
     draw.box(x + 1, y + 1, 10, hit ? "#fff" : "#faa");
-    draw.box(x - 2, y - 1, 10, hit ? "#fff" : "#4aa");
+    draw.box(x - 1, y - 1, 10, hit ? "#fff" : "#4aa");
+  },
+});
+
+const boxLevel3 = createEnemy({
+  health: 100,
+  speed: 21,
+  damage: 2,
+  damageTick: 1,
+  experience: 3,
+  render: (x, y, hit) => {
+    draw.box(x + 1, y + 1, 10, hit ? "#fff" : "#faa");
+    draw.box(x - 1, y - 1, 10, hit ? "#fff" : "#4aa");
+    draw.box(x + 1, y - 1, 10, hit ? "#fff" : "#4a4");
   },
 });
 
@@ -530,12 +543,23 @@ const triangleLevel2 = createEnemy({
   render: (x, y, hit) => draw.triangle(x, y, 10, hit ? "#fff" : "#4aa"),
 });
 
+const triangleLevel3 = createEnemy({
+  health: 60,
+  speed: 25,
+  damage: 3,
+  damageTick: 1,
+  experience: 4,
+  render: (x, y, hit) => draw.triangle(x, y, 10, hit ? "#fff" : "#966"),
+});
+
 const triangleBoss = createEnemy({
   health: 1000,
   speed: 25,
   damage: 10,
   damageTick: 1,
   experience: 50,
+  boss: true,
+  pushBackResistance: 80,
   render: (x, y, hit) => draw.triangle(x, y, 20, hit ? "#fff" : "#faa"),
 });
 
@@ -548,6 +572,50 @@ const circleLevel1 = createEnemy({
   render: (x, y, hit) => draw.circle(x, y, 5, hit ? "#fff" : "#999"),
 });
 
+const circleLevel2 = createEnemy({
+  health: 20,
+  speed: 35,
+  damage: 1,
+  damageTick: 1,
+  experience: 4,
+  render: (x, y, hit) => draw.circle(x, y, 5, hit ? "#fff" : "#4aa"),
+});
+
+const circleLevel3 = createEnemy({
+  health: 50,
+  speed: 35,
+  damage: 1,
+  damageTick: 1,
+  experience: 5,
+  render: (x, y, hit) => draw.circle(x, y, 6, hit ? "#fff" : "#4ca"),
+});
+
+const circleBoss = createEnemy({
+  health: 1000,
+  speed: 35,
+  damage: 5,
+  damageTick: 1,
+  experience: 4,
+  boss: true,
+  pushBackResistance: 80,
+  render: (x, y, hit) => draw.circle(x, y, 5, hit ? "#fff" : "#faa"),
+});
+
+const finalBoss = createEnemy({
+  health: 10000,
+  speed: 35,
+  damage: 5,
+  damageTick: 1,
+  experience: 0,
+  boss: true,
+  pushBackResistance: 1000,
+  render: (x, y, hit) => {
+    draw.circle(x, y, 25, hit ? "#fff" : "#faa");
+    draw.box(x, y, 25, hit ? "#fff" : "#4aa");
+    draw.triangle(x, y, 23, hit ? "#fff" : "#faa");
+  },
+});
+
 /**
  * @typedef SpawnRate
  * @property {number} from
@@ -558,19 +626,61 @@ const circleLevel1 = createEnemy({
 
 /** @type {SpawnRate[]} */
 const spawnRates = [
-  { from: 0, types: [boxLevel1], rate: 1 },
-  { from: 30, types: [boxLevel1, triangleLevel1], rate: 1 },
-  { from: 40, types: [boxLevel1, triangleLevel1], rate: 0.4 },
-  { from: 60, types: [triangleLevel1], rate: 0.5, boss: boxBoss },
-  { from: 90, types: [triangleLevel1, circleLevel1], rate: 0.6 },
-  { from: 120, types: [triangleLevel1, circleLevel1], rate: 0.4 },
-  { from: 150, types: [boxLevel2], rate: 0.6 },
-  { from: 160, types: [boxLevel2, triangleLevel2, circleLevel1], rate: 0.5 },
+  { from: 0, types: [boxLevel1], rate: 0.8 },
+  { from: 30, types: [boxLevel1, triangleLevel1], rate: 0.8 },
+  { from: 80, types: [boxLevel1, triangleLevel1], rate: 0.4 },
+  { from: 120, types: [triangleLevel1], rate: 0.5, boss: boxBoss },
+  { from: 150, types: [triangleLevel1, circleLevel1], rate: 0.6 },
+  { from: 200, types: [triangleLevel1, circleLevel1], rate: 0.4 },
+  { from: 250, types: [boxLevel2], rate: 0.6 },
+  { from: 300, types: [boxLevel2, triangleLevel2, circleLevel1], rate: 0.5 },
   {
-    from: 180,
+    from: 330,
     types: [triangleLevel2, circleLevel1],
     boss: triangleBoss,
     rate: 0.5,
+  },
+  {
+    from: 380,
+    types: [triangleLevel2, circleLevel2, boxLevel2],
+    rate: 0.4,
+  },
+  {
+    from: 450,
+    types: [circleLevel2, boxLevel3],
+    rate: 0.4,
+  },
+  {
+    from: 500,
+    types: [boxLevel3, triangleLevel3],
+    rate: 0.3,
+  },
+  {
+    from: 550,
+    types: [boxLevel3, triangleLevel3],
+    rate: 0.2,
+  },
+  {
+    from: 600,
+    types: [boxLevel3, triangleLevel3, circleLevel3],
+    rate: 0.3,
+  },
+  {
+    from: 650,
+    types: [boxLevel3, triangleLevel3],
+    boss: circleBoss,
+    rate: 0.3,
+  },
+  {
+    from: 700,
+    types: [boxLevel3, triangleLevel3, circleLevel3],
+    rate: 0.2,
+  },
+  {
+    from: 720,
+    types: [],
+    rate: 0,
+    boss: finalBoss,
   },
 ];
 
@@ -938,14 +1048,33 @@ function enemiesTick(deltaTime) {
     enemy.x += velocityX;
     enemy.y += velocityY;
 
+    // Process push-back
     if (Math.abs(enemy.pushBackX) > 0.1) {
-      enemy.pushBackX += (enemy.pushBackX > 0 ? -1 : 1) * deltaTime * 20;
+      const diff =
+        (enemy.pushBackX > 0 ? -1 : 1) *
+        deltaTime *
+        (type.pushBackResistance ?? 20);
+
+      if (Math.abs(diff) > Math.abs(enemy.pushBackX)) {
+        enemy.pushBackX = 0;
+      } else {
+        enemy.pushBackX += diff;
+      }
     } else {
       enemy.pushBackX = 0;
     }
 
     if (Math.abs(enemy.pushBackY) > 0.1) {
-      enemy.pushBackY += (enemy.pushBackY > 0 ? -1 : 1) * deltaTime * 20;
+      const diff =
+        (enemy.pushBackY > 0 ? -1 : 1) *
+        deltaTime *
+        (type.pushBackResistance ?? 20);
+
+      if (Math.abs(diff) > Math.abs(enemy.pushBackY)) {
+        enemy.pushBackY = 0;
+      } else {
+        enemy.pushBackY += diff;
+      }
     } else {
       enemy.pushBackY = 0;
     }
@@ -1011,8 +1140,10 @@ function managerTick(deltaTime) {
         }
 
         if (manager.spawnTimeout > spawnRate.rate) {
-          const type = pickRandom(spawnRate.types);
-          spawnEnemy(type);
+          if (spawnRate.types.length > 0) {
+            const type = pickRandom(spawnRate.types);
+            spawnEnemy(type);
+          }
           manager.spawnTimeout = 0;
         } else {
           manager.spawnTimeout += deltaTime;
@@ -1265,6 +1396,11 @@ const DEBUG = {
   setPlayer: (set) => {
     for (const [key, value] of Object.entries(set)) {
       player[key] = value;
+    }
+  },
+  setManager: (set) => {
+    for (const [key, value] of Object.entries(set)) {
+      manager[key] = value;
     }
   },
 };
