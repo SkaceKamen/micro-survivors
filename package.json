@@ -1,8 +1,10 @@
 {
   "name": "micro-survivors",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "tiny survivors-like game embeddable on any website",
   "main": "main.min.js",
+  "types": "main.d.ts",
+  "type": "commonjs",
   "scripts": {
     "minify": "uglifyjs -m -c --mangle-props keep_quoted --name-cache main.mangle-cache.json -o main.min.js main.js"
   },

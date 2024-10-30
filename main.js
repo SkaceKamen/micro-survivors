@@ -2071,3 +2071,5 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   return [player, manager];
 }
+
+typeof module === "object" && (module.exports = microSurvivors);

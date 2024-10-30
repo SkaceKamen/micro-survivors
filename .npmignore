@@ -1,0 +1,8 @@
+.vscode
+main.js
+media
+index.html
+index.dev.html
+main.mangle-cache.json
+package-lock.json
+.prettierrc.json
