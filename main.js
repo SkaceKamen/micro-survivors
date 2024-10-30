@@ -424,6 +424,26 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     manager.damageDone += damage;
   };
 
+  /**
+   *
+   * @param {MagicOrbsWeaponLevel} attrs
+   * @param {number} tick
+   * @param {(orbX: number, orbY: number, angle: number) => void} fn
+   */
+  const eachOrb = (attrs, tick, fn) => {
+    const area = attrs.area;
+    const baseAngle =
+      tick * (attrs.rotationSpeed * player.attrs.attackSpeed.val);
+    const anglePerOrb = PI2 / attrs.orbs;
+
+    for (let i = 0; i < attrs.orbs; i++) {
+      const angle = baseAngle + anglePerOrb * i;
+      const orbX = player.x + cos(angle) * area;
+      const orbY = player.y + sin(angle) * area;
+      fn(orbX, orbY, angle);
+    }
+  };
+
   /** @type {MagicOrbsWeapon} */
   const magicOrbs = {
     nam: "Orbs",
@@ -447,15 +467,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     tick(weapon, attrs) {
       const damage = attrs.damage + player.attrs.damage.val;
       const radius = attrs.radius * player.attrs.area.val;
-      const baseAngle =
-        weapon.tick * (attrs.rotationSpeed * player.attrs.attackSpeed.val);
-      const anglePerOrb = PI2 / attrs.orbs;
 
-      for (let i = 0; i < attrs.orbs; i++) {
-        const angle = baseAngle + anglePerOrb * i;
-        const orbX = player.x + cos(angle) * attrs.area;
-        const orbY = player.y + sin(angle) * attrs.area;
-
+      eachOrb(attrs, weapon.tick, (orbX, orbY, angle) => {
         for (const enemy of enemies) {
           const dis = distance(enemy.x, enemy.y, orbX, orbY);
 
@@ -463,22 +476,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
             hitEnemy(enemy, damage, angle);
           }
         }
-      }
+      });
     },
     render(weapon, attrs) {
-      const anglePerBlade = PI2 / attrs.orbs;
-      const baseAngle =
-        weapon.tick * (attrs.rotationSpeed * player.attrs.attackSpeed.val);
-
       const radius = attrs.radius * player.attrs.area.val;
 
-      for (let i = 0; i < attrs.orbs; i++) {
-        const angle = baseAngle + anglePerBlade * i;
-        const orbX = player.x + cos(angle) * attrs.area;
-        const orbY = player.y + sin(angle) * attrs.area;
-
+      eachOrb(attrs, weapon.tick, (orbX, orbY) => {
         draw.circle(orbX, orbY, radius / 2, white);
-      }
+      });
     },
     stats: (_, attrs, attrs1) => [
       [`damage`, optionalStatsDiff(attrs.damage, attrs1?.damage)],
