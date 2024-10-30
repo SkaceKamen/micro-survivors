@@ -333,18 +333,18 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     name: "Saw Blades",
     levels: fillLevels([
       {
-        "damage": 5,
+        "damage": 10,
         "range": 50,
-        "rotationSpeed": PI / 2,
+        "rotationSpeed": PI / 1.5,
         damageRate: 0.1,
         "blades": 1,
         "size": 10,
       },
       { blades: 2 },
-      { damage: 10, rotationSpeed: PI / 1.5 },
-      { rotationSpeed: PI / 1.25, size: 15 },
+      { damage: 15, rotationSpeed: PI / 1.25 },
+      { rotationSpeed: PI / 1, size: 15 },
       { blades: 3 },
-      { damage: 15 },
+      { damage: 20 },
       { blades: 4 },
     ]),
     tick(weapon, attrs) {
@@ -565,7 +565,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     attrs: {
       "health": [50, baseIncreaseWithLevel(5)],
       "speed": [45, baseIncreaseWithLevel(0.2)],
-      "healthRegen": [0.1, baseIncreaseWithLevel(0.025)],
+      "healthRegen": [0.05, baseIncreaseWithLevel(0.025)],
       "pickupDistance": [50],
       "damage": [baseIncreaseWithLevel(0.3)],
       "attackSpeed": [1],
@@ -663,7 +663,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     {
       name: "Speed boost",
       description: "+25% speed",
-      apply: multiplyAttr("speed", 1.25),
+      apply: multiplyAttr("speed", 0.25),
       maxCount: 5,
     },
     {
@@ -689,14 +689,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     },
     {
       name: "Regen",
-      description: "+0.1/s health regen",
-      apply: baseAttr("healthRegen", 0.1),
+      description: "+0.05/s health regen",
+      apply: baseAttr("healthRegen", 0.05),
       maxCount: 5,
     },
     {
       name: "Regen boost",
       description: "+10% health regen",
-      apply: multiplyAttr("healthRegen", 1.1),
+      apply: multiplyAttr("healthRegen", 0.1),
       maxCount: 5,
     },
     {
@@ -817,7 +817,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     level: 0,
     experience: 0,
     nextLevelExperience: 5,
-    health: 100,
+    health: fnOrV(type.attrs.speed[0]),
     meleeTick: 0,
     lastDamagedTick: 0,
     lastPickupTick: 0,
@@ -908,7 +908,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const boxLevel1 = defineEnemy({
     health: 10,
     speed: 26,
-    damage: 8,
+    damage: 10,
     experience: 1,
     render: boxSprite(["#aaa"], 10),
   });
@@ -916,7 +916,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const boxLevel2 = defineEnemy({
     health: 50,
     speed: 26,
-    damage: 10,
+    damage: 15,
     experience: 2,
     render: boxSprite(["#aaa", "#faa"], 10),
   });
@@ -933,7 +933,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     health: 1000,
     speed: 30,
     damage: 20,
-    experience: 20,
+    experience: 100,
     size: 20,
     render: boxSprite(["#faa"], 20),
     boss: true,
@@ -967,7 +967,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     health: 3000,
     speed: 35,
     damage: 30,
-    experience: 50,
+    experience: 200,
     boss: true,
     pushBackResistance: 80,
     size: 20,
@@ -1002,7 +1002,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     health: 5000,
     speed: 40,
     damage: 20,
-    experience: 4,
+    experience: 300,
     boss: true,
     pushBackResistance: 80,
     size: 16,
@@ -1066,65 +1066,65 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   /** @type {SpawnRate[]} */
   const spawnRates = [
-    { from: 0, types: [boxLevel1], rate: 0.4 },
-    { from: 30, types: [boxLevel1, triangleLevel1], rate: 0.5 },
-    { from: 80, types: [boxLevel1, triangleLevel1], rate: 0.4 },
-    { from: 120, types: [triangleLevel1], rate: 0.3, boss: boxBoss },
-    { from: 150, types: [triangleLevel1, circleLevel1], rate: 0.4 },
-    { from: 200, types: [triangleLevel1, circleLevel1], rate: 0.3 },
+    { from: 0, types: [boxLevel1], rate: 0.2 },
+    { from: 30, types: [boxLevel1, triangleLevel1], rate: 0.2 },
+    { from: 80, types: [boxLevel1, triangleLevel1], rate: 0.2 },
+    { from: 120, types: [triangleLevel1], rate: 0.2, boss: boxBoss },
+    { from: 150, types: [triangleLevel1, circleLevel1], rate: 0.2 },
+    { from: 180, types: [triangleLevel1, circleLevel1], rate: 0.2 },
     {
-      from: 250,
+      from: 210,
       types: [boxLevel2],
-      rate: 0.3,
+      rate: 0.2,
       wave: rectangleWave(boxLevel2),
     },
-    { from: 300, types: [boxLevel2, triangleLevel2, circleLevel1], rate: 0.3 },
+    { from: 240, types: [boxLevel2, triangleLevel2, circleLevel1], rate: 0.2 },
     {
-      from: 330,
+      from: 270,
       types: [triangleLevel2, circleLevel1],
       boss: triangleBoss,
-      rate: 0.3,
+      rate: 0.2,
     },
     {
-      from: 380,
+      from: 300,
       types: [triangleLevel2, circleLevel2, boxLevel2],
-      rate: 0.3,
+      rate: 0.2,
     },
     {
-      from: 450,
+      from: 330,
       types: [circleLevel2, boxLevel3],
-      rate: 0.4,
+      rate: 0.2,
       wave: circleWave(circleLevel2),
     },
     {
-      from: 500,
+      from: 380,
       types: [boxLevel3, triangleLevel3],
-      rate: 0.3,
+      rate: 0.2,
+    },
+    {
+      from: 400,
+      types: [boxLevel3, triangleLevel3],
+      rate: 0.2,
+    },
+    {
+      from: 450,
+      types: [boxLevel3, triangleLevel3, circleLevel3],
+      rate: 0.2,
+    },
+    {
+      from: 400,
+      types: [boxLevel3, triangleLevel3],
+      boss: circleBoss,
+      rate: 0.2,
     },
     {
       from: 550,
-      types: [boxLevel3, triangleLevel3],
-      rate: 0.25,
-    },
-    {
-      from: 600,
       types: [boxLevel3, triangleLevel3, circleLevel3],
-      rate: 0.25,
-    },
-    {
-      from: 650,
-      types: [boxLevel3, triangleLevel3],
-      boss: circleBoss,
-      rate: 0.4,
-    },
-    {
-      from: 700,
-      types: [boxLevel3, triangleLevel3, circleLevel3],
-      rate: 0.25,
+      rate: 0.1,
       wave: rectangleWave(triangleLevel3),
     },
     {
-      from: 720,
+      from: 600,
       types: [],
       rate: 0,
       boss: finalBoss,
@@ -1522,7 +1522,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           pickups.push({
             x: enemy.x - 5 + random() * 10,
             y: enemy.y - 5 + random() * 10,
-            health: 10,
+            health: 2,
           });
         }
 
@@ -1679,14 +1679,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
             spawnRate.wave?.();
           }
 
-          if (manager.spawnTimeout > spawnRate.rate) {
+          while (spawnRate.rate && manager.spawnTimeout > spawnRate.rate) {
             if (spawnRate.types.length > 0) {
               spawnEnemy(pickRandom(spawnRate.types));
             }
-            manager.spawnTimeout = 0;
-          } else {
-            manager.spawnTimeout += deltaTime;
+            manager.spawnTimeout -= spawnRate.rate;
           }
+
+          manager.spawnTimeout += deltaTime;
         }
 
         break;
