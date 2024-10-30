@@ -548,7 +548,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     render(weapon, attrs) {
       const rate = attrs.damageRate * player.attrs.attackSpeed.val;
       const delta = weapon.damageTick / rate;
-      const alpha = 0.15 + cos(delta * 2 * PI) * 0.02;
+      const alpha = 0.15 + cos(delta * 2 * PI) * 0.04;
 
       draw.circle(player.x, player.y, attrs.area, `rgba(255,0,0,${alpha})`);
     },
@@ -669,9 +669,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const upgrades = [
     {
       nam: "Speed boost",
-      desc: "+25% speed",
+      desc: "+5% speed",
       use() {
-        player.attrs.spd.multiplier.push(0.25);
+        player.attrs.spd.multiplier.push(0.05);
       },
       maxCount: 5,
     },
@@ -686,7 +686,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     {
       nam: "Max health",
       desc: "+25 max health, +5 health",
-      use: () => {
+      use() {
         player.attrs.health.base.push(25);
         player.health += 5;
       },
@@ -695,7 +695,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     {
       nam: "Health drop",
       desc: "+1% health drop chance",
-      use() {
+      use: () => {
         player.attrs.healthDrop.base.push(0.01);
       },
       maxCount: 5,
@@ -795,7 +795,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   /**
    * @typedef Player
-   * @property {PlayerType} type
+   * @property {PlayerType} typ
    * @property {number} x
    * @property {number} y
    * @property {number} lvl
@@ -819,12 +819,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    */
 
   /**
-   * @param {PlayerType} type
+   * @param {PlayerType} typ
    * @returns {Player}
    */
-  const createPlayer = (type) => ({
+  const createPlayer = (typ) => ({
     // Predefined constants
-    type,
+    typ,
 
     // State values
     x: 0,
@@ -832,7 +832,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     lvl: 0,
     experience: 0,
     nextLevelExperience: 5,
-    health: fnOrV(type.attrs.spd[0]),
+    health: fnOrV(typ.attrs.health[0]),
     meleeTick: 0,
     lastDamagedTick: 0,
     lastPickupTick: 0,
@@ -840,20 +840,20 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
     // Attribute values
     attrs: {
-      spd: createAttribute(type.attrs.spd),
-      health: createAttribute(type.attrs.health),
-      healthRegen: createAttribute(type.attrs.healthRegen),
-      pickupDistance: createAttribute(type.attrs.pickupDistance),
-      damage: createAttribute(type.attrs.damage),
-      attackSpeed: createAttribute(type.attrs.attackSpeed),
-      healthDrop: createAttribute(type.attrs.healthDrop),
+      spd: createAttribute(typ.attrs.spd),
+      health: createAttribute(typ.attrs.health),
+      healthRegen: createAttribute(typ.attrs.healthRegen),
+      pickupDistance: createAttribute(typ.attrs.pickupDistance),
+      damage: createAttribute(typ.attrs.damage),
+      attackSpeed: createAttribute(typ.attrs.attackSpeed),
+      healthDrop: createAttribute(typ.attrs.healthDrop),
     },
 
     // Already applied upgrades
     upgrades: [],
 
     // Weapons
-    weapons: type.weapons.map((w) => initializeWeapon(w)),
+    weapons: typ.weapons.map((w) => initializeWeapon(w)),
   });
 
   const player = createPlayer(warrior);
@@ -931,7 +931,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const boxLevel2 = defineEnemy({
     health: 50,
     spd: 26,
-    damage: 15,
+    damage: 20,
     experience: 2,
     render: boxSprite([gray, enemyStage2Color], 10),
   });
@@ -939,7 +939,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const boxLevel3 = defineEnemy({
     health: 100,
     spd: 30,
-    damage: 20,
+    damage: 30,
     experience: 3,
     render: boxSprite([gray, enemyStage2Color, "#4a4"], 10),
   });
@@ -947,7 +947,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const boxBoss = defineEnemy({
     health: 1000,
     spd: 30,
-    damage: 20,
+    damage: 30,
     experience: 100,
     radius: 20,
     render: boxSprite([enemyStage2Color], 20),
@@ -973,7 +973,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const triangleLevel3 = defineEnemy({
     health: 60,
     spd: 35,
-    damage: 30,
+    damage: 40,
     experience: 4,
     render: triangleSprite([darkGray, enemyStage3Color, "#966"], 10),
   });
@@ -981,7 +981,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const triangleBoss = defineEnemy({
     health: 3000,
     spd: 35,
-    damage: 30,
+    damage: 40,
     experience: 200,
     boss: true,
     pushBackResistance: 80,
@@ -992,7 +992,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const circleLevel1 = defineEnemy({
     health: 10,
     spd: 40,
-    damage: 8,
+    damage: 10,
     experience: 3,
     render: circleSprite([darkGray], 5),
   });
@@ -1000,7 +1000,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const circleLevel2 = defineEnemy({
     health: 20,
     spd: 40,
-    damage: 10,
+    damage: 20,
     experience: 4,
     render: circleSprite([darkGray, enemyStage3Color], 5),
   });
@@ -1008,7 +1008,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const circleLevel3 = defineEnemy({
     health: 50,
     spd: 40,
-    damage: 20,
+    damage: 40,
     experience: 5,
     render: circleSprite([darkGray, enemyStage3Color, "#4ca"], 5),
   });
@@ -1016,7 +1016,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const circleBoss = defineEnemy({
     health: 5000,
     spd: 40,
-    damage: 20,
+    damage: 50,
     experience: 300,
     boss: true,
     pushBackResistance: 80,
@@ -1025,9 +1025,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   });
 
   const finalBoss = defineEnemy({
-    health: 12000,
-    spd: 55,
-    damage: 50,
+    health: 8000,
+    spd: 60,
+    damage: 100,
     experience: 0,
     boss: true,
     pushBackResistance: 1000,
