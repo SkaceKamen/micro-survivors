@@ -10,7 +10,20 @@
   </head>
   <body>
     <script>
-      microSurvivors();
+      const [player, manager] = microSurvivors();
+
+      window.DEBUG = {
+        setPlayer: (set) => {
+          for (const [key, value] of Object.entries(set)) {
+            player[key] = value;
+          }
+        },
+        setManager: (set) => {
+          for (const [key, value] of Object.entries(set)) {
+            manager[key] = value;
+          }
+        },
+      };
     </script>
   </body>
 </html>

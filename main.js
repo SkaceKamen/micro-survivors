@@ -49,7 +49,7 @@ function microSurvivors(target = document.body) {
    *
    * @param {number} a angle in radians
    */
-  const fA = (a) => (a * (180 / Math.PI)).toFixed(0);
+  const fA = (a) => f(a * (180 / Math.PI));
 
   /**
    * Format number with fixed decimal places
@@ -67,6 +67,8 @@ function microSurvivors(target = document.body) {
    */
   const distance = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
 
+  const random = () => Math.random();
+
   /**
    * @template A
    * @param {A[]} array
@@ -74,7 +76,7 @@ function microSurvivors(target = document.body) {
    */
   function shuffleArray(array) {
     for (let i = array.length - 1; i >= 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor(random() * (i + 1));
       [array[i], array[j]] = [array[j], array[i]];
     }
     return array;
@@ -85,7 +87,7 @@ function microSurvivors(target = document.body) {
    * @param {A[]} a
    * @returns {A}
    */
-  const pickRandom = (a) => a[Math.round(Math.random() * (a.length - 1))];
+  const pickRandom = (a) => a[Math.round(random() * (a.length - 1))];
 
   // #endregion
 
@@ -94,7 +96,7 @@ function microSurvivors(target = document.body) {
    * @param {CanvasRenderingContext2D} ctx
    * @returns
    */
-  const createDraw = (ctx) => ({
+  const draw = {
     /**
      * @param {number} x
      * @param {number} y
@@ -106,8 +108,11 @@ function microSurvivors(target = document.body) {
       ctx.fillStyle = color;
       ctx.fillRect(x, y, w, h);
     },
-    overlay() {
-      ctx.fillStyle = "rgba(0,0,0,0.9)";
+    /**
+     * @param {string | CanvasGradient} style
+     */
+    overlay(style = "rgba(0,0,0,0.9)") {
+      ctx.fillStyle = style;
       ctx.fillRect(0, 0, width, height);
     },
     /**
@@ -161,7 +166,7 @@ function microSurvivors(target = document.body) {
       ctx.arc(x, y, radius, 0, Math.PI * 2);
       ctx.fill();
     },
-  });
+  };
 
   /**
    *
@@ -194,20 +199,24 @@ function microSurvivors(target = document.body) {
   };
 
   /**
-   * @param {number} width
-   * @param {number} height
+   * @param {number} r0
+   * @param {string} c1
+   * @param {string} c2
    */
-  const createCanvas = (width, height) => {
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
+  const screenGradient = (r0, c1, c2) => {
+    const gradient = ctx.createRadialGradient(
+      width / 2,
+      height / 2,
+      r0,
+      width / 2,
+      height / 2,
+      width / 2,
+    );
 
-    const ctx = canvas.getContext("2d") ?? raise();
+    gradient.addColorStop(0, c1);
+    gradient.addColorStop(1, c2);
 
-    return {
-      canvas,
-      ctx,
-    };
+    return gradient;
   };
 
   // #endregion
@@ -215,8 +224,11 @@ function microSurvivors(target = document.body) {
   const width = 400;
   const height = 400;
 
-  const { canvas, ctx } = createCanvas(width, height);
-  const draw = createDraw(ctx);
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext("2d") ?? raise();
 
   /** @type {Record<string, keyof typeof justPressedInput>} */
   const inputMapping = {
@@ -265,10 +277,12 @@ function microSurvivors(target = document.body) {
     }
   };
 
-  document.addEventListener("keydown", (event) => processKeyEvent(event, true));
-  document.addEventListener("keyup", (event) => processKeyEvent(event, false));
+  const listen = "addEventListener";
 
-  canvas.addEventListener("mousemove", (event) => {
+  document[listen]("keydown", (event) => processKeyEvent(event, true));
+  document[listen]("keyup", (event) => processKeyEvent(event, false));
+
+  canvas[listen]("mousemove", (event) => {
     const rect = canvas.getBoundingClientRect();
     input.targetX = event.clientX - rect.left;
     input.targetY = event.clientY - rect.top;
@@ -281,6 +295,26 @@ function microSurvivors(target = document.body) {
     MELEE: 1,
     /** @type {2} */
     AREA: 2,
+  };
+
+  /**
+   * @template LevelType
+   * @param {[LevelType, ...Partial<LevelType>[]]} levels
+   * @returns {LevelType[]}
+   */
+  const fillLevels = (levels) => {
+    let previous = levels[0];
+    /** @type {LevelType[]} */
+    let result = [levels[0]];
+    for (let i = 1; i < levels.length; i++) {
+      previous = {
+        ...previous,
+        ...levels[i],
+      };
+
+      result[i] = previous;
+    }
+    return result;
   };
 
   /**
@@ -304,64 +338,22 @@ function microSurvivors(target = document.body) {
   const sawBlades = {
     name: "Saw Blades",
     type: WEAPON_TYPES.SAW_BLADES,
-    levels: [
+    levels: fillLevels([
       {
-        damage: 5,
-        range: 50,
-        rotationSpeed: Math.PI / 2,
+        "damage": 5,
+        "range": 50,
+        "rotationSpeed": Math.PI / 2,
         damageRate: 0.1,
-        blades: 1,
-        size: 10,
+        "blades": 1,
+        "size": 10,
       },
-      {
-        damage: 5,
-        range: 50,
-        rotationSpeed: Math.PI / 2,
-        damageRate: 0.1,
-        blades: 2,
-        size: 10,
-      },
-      {
-        damage: 10,
-        range: 50,
-        rotationSpeed: Math.PI / 1.5,
-        damageRate: 0.1,
-        blades: 2,
-        size: 10,
-      },
-      {
-        damage: 10,
-        range: 50,
-        rotationSpeed: Math.PI / 1.25,
-        damageRate: 0.1,
-        blades: 2,
-        size: 15,
-      },
-      {
-        damage: 10,
-        range: 50,
-        rotationSpeed: Math.PI / 1.25,
-        damageRate: 0.1,
-        blades: 3,
-        size: 15,
-      },
-      {
-        damage: 15,
-        range: 50,
-        rotationSpeed: Math.PI / 1.25,
-        damageRate: 0.1,
-        blades: 3,
-        size: 15,
-      },
-      {
-        damage: 15,
-        range: 50,
-        rotationSpeed: Math.PI / 1.25,
-        damageRate: 0.1,
-        blades: 4,
-        size: 15,
-      },
-    ],
+      { blades: 2 },
+      { damage: 10, rotationSpeed: Math.PI / 1.5 },
+      { rotationSpeed: Math.PI / 1.25, size: 15 },
+      { blades: 3 },
+      { damage: 15 },
+      { blades: 4 },
+    ]),
   };
 
   /**
@@ -383,15 +375,15 @@ function microSurvivors(target = document.body) {
   const sword = {
     name: "Sword",
     type: WEAPON_TYPES.MELEE,
-    levels: [
-      { damage: 8, angle: Math.PI / 4, range: 80, attackRate: 0.5 },
-      { damage: 13, angle: Math.PI / 4, range: 80, attackRate: 0.5 },
-      { damage: 13, angle: (Math.PI / 4) * 1.2, range: 90, attackRate: 0.5 },
-      { damage: 18, angle: (Math.PI / 4) * 1.2, range: 90, attackRate: 0.5 },
-      { damage: 23, angle: (Math.PI / 4) * 1.2, range: 90, attackRate: 0.5 },
-      { damage: 28, angle: (Math.PI / 4) * 1.5, range: 90, attackRate: 0.5 },
-      { damage: 33, angle: (Math.PI / 4) * 1.7, range: 120, attackRate: 0.5 },
-    ],
+    levels: fillLevels([
+      { "damage": 8, "angle": Math.PI / 4, "range": 80, attackRate: 0.5 },
+      { damage: 13 },
+      { angle: (Math.PI / 4) * 1.2, range: 90 },
+      { damage: 18 },
+      { damage: 23 },
+      { damage: 28, angle: (Math.PI / 4) * 1.5 },
+      { damage: 33, angle: (Math.PI / 4) * 1.7, range: 120 },
+    ]),
   };
 
   /**
@@ -412,14 +404,14 @@ function microSurvivors(target = document.body) {
   const barbedWire = {
     name: "Barbed Wire",
     type: WEAPON_TYPES.AREA,
-    levels: [
-      { range: 40, damage: 2, attackRate: 0.75 },
-      { range: 60, damage: 2, attackRate: 0.75 },
-      { range: 60, damage: 3, attackRate: 0.75 },
-      { range: 70, damage: 3, attackRate: 0.75 },
-      { range: 80, damage: 3, attackRate: 0.75 },
-      { range: 80, damage: 4, attackRate: 0.75 },
-    ],
+    levels: fillLevels([
+      { "range": 40, "damage": 2, attackRate: 0.75 },
+      { range: 60 },
+      { damage: 3 },
+      { range: 70 },
+      { range: 80 },
+      { damage: 4 },
+    ]),
   };
 
   /**
@@ -1462,38 +1454,24 @@ function microSurvivors(target = document.body) {
     const d = Math.min(1, player.lastDamagedTick / 0.5);
 
     if (d > 0) {
-      const damageOverlayGradient = ctx.createRadialGradient(
-        width / 2,
-        height / 2,
+      const damageOverlayGradient = screenGradient(
         80,
-        width / 2,
-        height / 2,
-        width / 2,
+        "rgba(255,0,0,0)",
+        `rgba(255,0,0,${d})`,
       );
 
-      damageOverlayGradient.addColorStop(0, "rgba(255,0,0,0)");
-      damageOverlayGradient.addColorStop(1, `rgba(255,0,0,${d})`);
-
-      ctx.fillStyle = damageOverlayGradient;
-      ctx.fillRect(0, 0, width, height);
+      draw.overlay(damageOverlayGradient);
     }
 
     const p = Math.min(1, player.lastPickupTick / 0.1);
     if (p > 0) {
-      const pickupOverlayGradient = ctx.createRadialGradient(
-        width / 2,
-        height / 2,
+      const pickupOverlayGradient = screenGradient(
         130,
-        width / 2,
-        height / 2,
-        width / 2,
+        "rgba(255,255,255,0)",
+        `rgba(255,255,255,${p * 0.15})`,
       );
 
-      pickupOverlayGradient.addColorStop(0, "rgba(255,255,255,0)");
-      pickupOverlayGradient.addColorStop(1, `rgba(255,255,255,${p * 0.15})`);
-
-      ctx.fillStyle = pickupOverlayGradient;
-      ctx.fillRect(0, 0, width, height);
+      draw.overlay(pickupOverlayGradient);
     }
   }
 
@@ -1547,10 +1525,10 @@ function microSurvivors(target = document.body) {
           experience: type.experience,
         });
 
-        if (Math.random() < player.attrs.healthDrop.value) {
+        if (random() < player.attrs.healthDrop.value) {
           pickups.push({
-            x: enemy.x - 5 + Math.random() * 10,
-            y: enemy.y - 5 + Math.random() * 10,
+            x: enemy.x - 5 + random() * 10,
+            y: enemy.y - 5 + random() * 10,
             type: PICKUP_TYPES.HEALTH,
             health: 10,
           });
@@ -1648,10 +1626,10 @@ function microSurvivors(target = document.body) {
    * @param {EnemyType} type
    */
   function spawnEnemy(type) {
-    const angle = Math.random() * Math.PI * 2;
+    const angle = random() * Math.PI * 2;
     const side = Math.max(width, height) / 2;
     const minDistance = Math.sqrt(side * side * 2);
-    const distance = minDistance + Math.random() * 15;
+    const distance = minDistance + random() * 15;
 
     enemies.push(
       initializeEnemy(
@@ -2024,24 +2002,8 @@ function microSurvivors(target = document.body) {
     gameLogicTick(delta);
   }
 
-  /** @type {any} */
-  const anyWindow = window;
-  anyWindow.DEBUG = {
-    /**
-     * @param {Partial<Player>} set
-     */
-    setPlayer: (set) => {
-      for (const [key, value] of Object.entries(set)) {
-        player[key] = value;
-      }
-    },
-    setManager: (set) => {
-      for (const [key, value] of Object.entries(set)) {
-        manager[key] = value;
-      }
-    },
-  };
-
   target.appendChild(canvas);
   requestAnimationFrame(animationFrameTick);
+
+  return [player, manager];
 }
