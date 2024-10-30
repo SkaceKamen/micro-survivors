@@ -662,11 +662,11 @@ function microSurvivors(target = document.body) {
 
     // Base attribute value modifiers
     /** @type {AttributeEnhancer[]} */
-    base: [...base],
+    "base": [...base],
 
     // Multiplier attribute value modifiers
     /** @type {AttributeEnhancer[]} */
-    multiplier: [...multiplier],
+    "multiplier": [...multiplier],
 
     /** @type { AttributeCache | null} */
     $cached: null,
