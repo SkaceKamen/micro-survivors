@@ -10,25 +10,33 @@ canvas.height = height;
 const ctx = canvas.getContext("2d");
 
 const inputMapping = {
-  ArrowUp: "up",
-  ArrowDown: "down",
-  ArrowLeft: "left",
-  ArrowRight: "right",
-  KeyW: "up",
-  KeyS: "down",
-  KeyA: "left",
-  KeyD: "right",
-  Enter: "enter",
-  Escape: "pause",
-  KeyP: "pause",
+  arrowup: "up",
+  arrowdown: "down",
+  arrowleft: "left",
+  arrowright: "right",
+  w: "up",
+  s: "down",
+  a: "left",
+  d: "right",
+  enter: "enter",
+  escape: "pause",
+  p: "pause",
 };
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i >= 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
 
 /**
  * @param {KeyboardEvent} event
  * @param {boolean} state
  */
 const processKeyEvent = (event, state) => {
-  const mapped = inputMapping[event.key];
+  const mapped = inputMapping[event.key.toLowerCase()];
   if (mapped) {
     input[mapped] = state;
     justPressedInput[mapped] = state;
@@ -64,15 +72,17 @@ const multiplyAttr = (attr, change) => (player) =>
 const upgrades = [
   {
     name: "Speed boost",
-    description: "+5% speed",
+    description: "+25% speed",
     weight: 1,
-    apply: multiplyAttr("speed", 1.05),
+    apply: multiplyAttr("speed", 1.25),
+    maxCount: 5,
   },
   {
     name: "Speed base",
-    description: "+0.5 base speed",
+    description: "+1 base speed",
     weight: 1,
-    apply: baseAttr("speed", 0.5),
+    apply: baseAttr("speed", 1),
+    maxCount: 5,
   },
   {
     name: "Heal",
@@ -80,6 +90,7 @@ const upgrades = [
     weight: 1,
     condition: (player) => player.health < player.attrs.health.value,
     apply: (player) => (player.health += 25),
+    maxCount: 5,
   },
   {
     name: "Max health",
@@ -89,6 +100,7 @@ const upgrades = [
       player.attrs.health.push("base", (_, value) => value + 25);
       player.health += 5;
     },
+    maxCount: 5,
   },
   {
     name: "Melee damage",
@@ -96,6 +108,7 @@ const upgrades = [
     weight: 1,
     apply: baseAttr("meleeDamage", 5),
     condition: hasMelee,
+    maxCount: 5,
   },
   {
     name: "Melee damage boost",
@@ -103,6 +116,7 @@ const upgrades = [
     weight: 1,
     apply: multiplyAttr("meleeDamage", 1.25),
     condition: hasMelee,
+    maxCount: 5,
   },
   {
     name: "Melee range",
@@ -110,6 +124,7 @@ const upgrades = [
     weight: 1,
     apply: baseAttr("meleeDistance", 10),
     condition: hasMelee,
+    maxCount: 5,
   },
   {
     name: "Melee range boost",
@@ -117,6 +132,7 @@ const upgrades = [
     weight: 1,
     apply: multiplyAttr("meleeDistance", 1.15),
     condition: hasMelee,
+    maxCount: 5,
   },
   {
     name: "Melee wider cone",
@@ -124,6 +140,7 @@ const upgrades = [
     weight: 1,
     apply: multiplyAttr("meleeAngle", 1.1),
     condition: hasMelee,
+    maxCount: 5,
   },
   {
     name: "Melee attack speed",
@@ -131,24 +148,28 @@ const upgrades = [
     weight: 1,
     apply: multiplyAttr("meleeTimeout", 0.75),
     condition: hasMelee,
+    maxCount: 5,
   },
   {
     name: "Regen",
     description: "+0.05 health regen",
     weight: 1,
     apply: baseAttr("healthRegen", 0.05),
+    maxCount: 5,
   },
   {
     name: "Regen boost",
     description: "+5% health regen",
     weight: 1,
     apply: multiplyAttr("healthRegen", 1.05),
+    maxCount: 5,
   },
   {
     name: "Pickup range",
     description: "+10 pickup range",
     weight: 1,
     apply: baseAttr("pickupDistance", 10),
+    maxCount: 5,
   },
 ];
 
@@ -434,6 +455,7 @@ function renderPickups() {
 function renderPlayerStatsUi(x, y, w) {
   const stats = [
     ["Health", Math.floor(player.attrs.health.value)],
+    ["Health Regen", player.attrs.healthRegen.value.toFixed(2) + "/s"],
     ["Speed", player.attrs.speed.value.toFixed(2)],
     ["Melee damage", player.attrs.meleeDamage.value.toFixed(2)],
     ["Melee range", player.attrs.meleeDistance.value.toFixed(2)],
@@ -601,9 +623,9 @@ function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.translate(-player.x + width / 2, -player.y + height / 2);
 
+  renderPickups();
   renderPlayer();
   renderEnemies();
-  renderPickups();
 
   ctx.resetTransform();
   renderOverlays();
@@ -869,10 +891,7 @@ function playerTick(deltaTime) {
 
     manager.state = MANAGER_STATES.PICKING_UPGRADE;
     // TODO: Weights
-    manager.upgrades = upgrades
-      .slice()
-      .sort(() => 0.5 - Math.random())
-      .slice(0, 3);
+    manager.upgrades = shuffleArray(upgrades).slice(0, 3);
 
     player.health += 5;
   }
