@@ -119,7 +119,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     /**
      * @param {string | CanvasGradient} style
      */
-    overlay(style = "rgba(0,0,0,0.9)") {
+    overlay(style = "#000000e5") {
       ctx.fillStyle = style;
       ctx.fillRect(0, 0, width, height);
     },
@@ -456,7 +456,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     attrs: {
       "health": [baseValue(100), baseIncreaseWithLevel(10)],
       "speed": [baseValue(45), baseIncreaseWithLevel(0.2)],
-      "healthRegen": [baseValue(0.1), baseIncreaseWithLevel(0.01)],
+      "healthRegen": [baseValue(0.1), baseIncreaseWithLevel(0.025)],
       "pickupDistance": [baseValue(50)],
       "damage": [baseIncreaseWithLevel(0.3)],
       "attackSpeed": [baseValue(1)],
@@ -602,9 +602,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     },
     {
       name: "Regen boost",
-      description: "+5% health regen",
+      description: "+10% health regen",
       weight: 1,
-      apply: multiplyAttr("healthRegen", 1.05),
+      apply: multiplyAttr("healthRegen", 1.1),
       maxCount: 5,
     },
     {
@@ -842,7 +842,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     damageTick: 1,
     experience: 20,
     size: 20,
-    render: (x, y, hit) => boxSprite(["#faa"], 20),
+    render: boxSprite(["#faa"], 20),
     boss: true,
   });
 
@@ -989,60 +989,60 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /** @type {SpawnRate[]} */
   const spawnRates = [
     { from: 0, types: [boxLevel1], rate: 0.4 },
-    { from: 30, types: [boxLevel1, triangleLevel1], rate: 0.4 },
-    { from: 80, types: [boxLevel1, triangleLevel1], rate: 0.1 },
-    { from: 120, types: [triangleLevel1], rate: 0.2, boss: boxBoss },
-    { from: 150, types: [triangleLevel1, circleLevel1], rate: 0.3 },
-    { from: 200, types: [triangleLevel1, circleLevel1], rate: 0.15 },
+    { from: 30, types: [boxLevel1, triangleLevel1], rate: 0.5 },
+    { from: 80, types: [boxLevel1, triangleLevel1], rate: 0.4 },
+    { from: 120, types: [triangleLevel1], rate: 0.3, boss: boxBoss },
+    { from: 150, types: [triangleLevel1, circleLevel1], rate: 0.4 },
+    { from: 200, types: [triangleLevel1, circleLevel1], rate: 0.3 },
     {
       from: 250,
       types: [boxLevel2],
-      rate: 0.2,
+      rate: 0.3,
       wave: rectangleWave(boxLevel2),
     },
-    { from: 300, types: [boxLevel2, triangleLevel2, circleLevel1], rate: 0.2 },
+    { from: 300, types: [boxLevel2, triangleLevel2, circleLevel1], rate: 0.3 },
     {
       from: 330,
       types: [triangleLevel2, circleLevel1],
       boss: triangleBoss,
-      rate: 0.2,
+      rate: 0.3,
     },
     {
       from: 380,
       types: [triangleLevel2, circleLevel2, boxLevel2],
-      rate: 0.15,
+      rate: 0.3,
     },
     {
       from: 450,
       types: [circleLevel2, boxLevel3],
-      rate: 0.15,
+      rate: 0.4,
       wave: circleWave(circleLevel2),
     },
     {
       from: 500,
       types: [boxLevel3, triangleLevel3],
-      rate: 0.1,
+      rate: 0.3,
     },
     {
       from: 550,
       types: [boxLevel3, triangleLevel3],
-      rate: 0.1,
+      rate: 0.25,
     },
     {
       from: 600,
       types: [boxLevel3, triangleLevel3, circleLevel3],
-      rate: 0.1,
+      rate: 0.25,
     },
     {
       from: 650,
       types: [boxLevel3, triangleLevel3],
       boss: circleBoss,
-      rate: 0.15,
+      rate: 0.4,
     },
     {
       from: 700,
       types: [boxLevel3, triangleLevel3, circleLevel3],
-      rate: 0.1,
+      rate: 0.25,
       wave: rectangleWave(triangleLevel3),
     },
     {
@@ -1462,7 +1462,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     if (d > 0) {
       const damageOverlayGradient = screenGradient(
         80,
-        "rgba(255,0,0,0)",
+        "#ff000000",
         `rgba(255,0,0,${d})`,
       );
 
@@ -1473,7 +1473,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     if (p > 0) {
       const pickupOverlayGradient = screenGradient(
         130,
-        "rgba(255,255,255,0)",
+        "#ffffff00",
         `rgba(255,255,255,${p * 0.15})`,
       );
 
@@ -1696,15 +1696,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
               spawnEnemy(spawnRate.boss);
             }
 
-            if (spawnRate.wave) {
-              spawnRate.wave();
-            }
+            spawnRate.wave?.();
           }
 
           if (manager.spawnTimeout > spawnRate.rate) {
             if (spawnRate.types.length > 0) {
-              const type = pickRandom(spawnRate.types);
-              spawnEnemy(type);
+              spawnEnemy(pickRandom(spawnRate.types));
             }
             manager.spawnTimeout = 0;
           } else {
