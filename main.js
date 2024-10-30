@@ -34,10 +34,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const left = "left";
   const right = "right";
   const middle = "middle";
+  const listen = "addEventListener";
   // #endregion
 
   // #region Utility functions
-
   /**
    * @param {string | number} n
    * @param {number} [width=2]
@@ -276,9 +276,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       justPressedInput[mapped] = state;
     }
   };
-
-  const listen = "addEventListener";
-
   document[listen]("keydown", (event) => processKeyEvent(event, true));
   document[listen]("keyup", (event) => processKeyEvent(event, false));
 
@@ -287,15 +284,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     input.targetX = event.clientX - rect.left;
     input.targetY = event.clientY - rect.top;
   });
-
-  const WEAPON_TYPES = {
-    /** @type {0} */
-    SAW_BLADES: 0,
-    /** @type {1} */
-    MELEE: 1,
-    /** @type {2} */
-    AREA: 2,
-  };
 
   /**
    * @template LevelType
@@ -306,14 +294,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     let previous = levels[0];
     /** @type {LevelType[]} */
     let result = [levels[0]];
-    for (let i = 1; i < levels.length; i++) {
+    levels.forEach((level, i) => {
       previous = {
         ...previous,
-        ...levels[i],
+        ...level,
       };
 
       result[i] = previous;
-    }
+    });
     return result;
   };
 
@@ -396,11 +384,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         draw.circle(bladeX, bladeY, attrs.size / 2, "#fff");
       }
     },
-    stats: (weapon, attrs) => [
-      [`${weapon.name} damage`, formatNumber(attrs.damage)],
-      [`${weapon.name} range`, formatNumber(attrs.range)],
-      [`${weapon.name} blades`, formatNumber(attrs.blades)],
-      [`${weapon.name} size`, formatNumber(attrs.size)],
+    stats: (_, attrs) => [
+      [`damage`, formatNumber(attrs.damage)],
+      [`range`, formatNumber(attrs.range)],
+      [`speed`, formatAngle(attrs.rotationSpeed) + "/s"],
+      [`blades`, formatNumber(attrs.blades)],
+      [`size`, formatNumber(attrs.size)],
     ],
   };
 
@@ -409,7 +398,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @property {number} damage
    * @property {number} angle
    * @property {number} range
-   * @property {number} attackRate
+   * @property {number} damageRate
    */
 
   /**
@@ -420,7 +409,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const sword = {
     name: "Sword",
     levels: fillLevels([
-      { "damage": 8, "angle": PI / 4, "range": 80, attackRate: 0.5 },
+      { "damage": 8, "angle": PI / 4, "range": 80, damageRate: 0.5 },
       { damage: 13 },
       { angle: (PI / 4) * 1.2, range: 90 },
       { damage: 18 },
@@ -455,7 +444,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       }
     },
     render(weapon, attrs) {
-      const rate = attrs.attackRate * player.attrs.attackSpeed.value;
+      const rate = attrs.damageRate * player.attrs.attackSpeed.value;
       const delta = weapon.damageTick / rate;
       const alpha = delta * 0.2;
 
@@ -482,10 +471,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         ctx.fill();
       }
     },
-    stats: (weapon, attrs) => [
-      [`${weapon.name} damage`, formatNumber(attrs.damage)],
-      [`${weapon.name} range`, formatNumber(attrs.range)],
-      [`${weapon.name} angle`, `${formatAngle(attrs.angle)}°`],
+    stats: (_, attrs) => [
+      [`damage`, formatNumber(attrs.damage)],
+      [`range`, formatNumber(attrs.range)],
+      [`angle`, `${formatAngle(attrs.angle)}°`],
     ],
   };
 
@@ -493,7 +482,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @typedef AreaWeaponLevel
    * @property {number} damage
    * @property {number} range
-   * @property {number} attackRate
+   * @property {number} damageRate
    */
 
   /**
@@ -504,7 +493,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const barbedWire = {
     name: "Barbed Wire",
     levels: fillLevels([
-      { "range": 40, "damage": 2, attackRate: 0.75 },
+      { "range": 40, "damage": 2, damageRate: 0.75 },
       { range: 60 },
       { damage: 3 },
       { range: 70 },
@@ -515,11 +504,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       const damage = attrs.damage + player.attrs.damage.value;
 
       for (const enemy of enemies) {
-        const dx = enemy.x - player.x;
-        const dy = enemy.y - player.y;
-        const distance = hypot(dx, dy);
+        const dis = distance(player.x, player.y, enemy.x, enemy.y);
 
-        if (distance < attrs.range) {
+        if (dis < attrs.range) {
           enemy.health -= damage;
           enemy.hitTick = 0.1;
 
@@ -532,15 +519,15 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       }
     },
     render(weapon, attrs) {
-      const rate = attrs.attackRate * player.attrs.attackSpeed.value;
+      const rate = attrs.damageRate * player.attrs.attackSpeed.value;
       const delta = weapon.damageTick / rate;
       const alpha = 0.15 + cos(delta * 2 * PI) * 0.02;
 
       draw.circle(player.x, player.y, attrs.range, `rgba(255,0,0,${alpha})`);
     },
-    stats: (weapon, attrs) => [
-      [`${weapon.name} damage`, formatNumber(attrs.damage)],
-      [`${weapon.name} range`, formatNumber(attrs.range)],
+    stats: (_, attrs) => [
+      [`damage`, formatNumber(attrs.damage)],
+      [`range`, formatNumber(attrs.range)],
     ],
   };
 
@@ -568,36 +555,27 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     player.level * increasePerLevel;
 
   /**
-   * @param {number} value
-   * @returns {AttributeEnhancer}
-   */
-  const baseValue = (value) => value;
-
-  /**
    * @typedef PlayerType
    * @property {WeaponType[]} weapons
    * @property {Record<keyof Player['attrs'], AttributeEnhancer[]>} attrs
    */
 
-  /** @param {PlayerType} t */
-  const playerType = (t) => t;
-
-  const warrior = playerType({
+  /** @type {PlayerType} t */
+  const warrior = {
     weapons: [sword],
-
     attrs: {
-      "health": [baseValue(100), baseIncreaseWithLevel(10)],
-      "speed": [baseValue(45), baseIncreaseWithLevel(0.2)],
-      "healthRegen": [baseValue(0.1), baseIncreaseWithLevel(0.025)],
-      "pickupDistance": [baseValue(50)],
+      "health": [100, baseIncreaseWithLevel(10)],
+      "speed": [45, baseIncreaseWithLevel(0.2)],
+      "healthRegen": [0.1, baseIncreaseWithLevel(0.025)],
+      "pickupDistance": [50],
       "damage": [baseIncreaseWithLevel(0.3)],
-      "attackSpeed": [baseValue(1)],
-      "healthDrop": [baseValue(0.01)],
+      "attackSpeed": [1],
+      "healthDrop": [0.01],
     },
-  });
+  };
 
-  /** @typedef {(player: Player) => void} UpgradeApply */
-  /** @typedef {(player: Player) => boolean} UpgradeCondition */
+  /** @typedef {() => void} UpgradeApply */
+  /** @typedef {() => boolean} UpgradeCondition */
 
   /**
    * @typedef Upgrade
@@ -613,15 +591,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {number} change
    * @returns {UpgradeApply}
    */
-  const baseAttr = (attr, change) => (player) =>
-    player.attrs[attr].base.push(change);
+  const baseAttr = (attr, change) => () => player.attrs[attr].base.push(change);
 
   /**
    * @param {keyof Player['attrs']} attr
    * @param {number} change
    * @returns {UpgradeApply}
    */
-  const multiplyAttr = (attr, change) => (player) =>
+  const multiplyAttr = (attr, change) => () =>
     player.attrs[attr].base.push(change);
 
   /**
@@ -634,7 +611,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
     return {
       name: weapon.name,
-      description: () => {
+      description() {
         const existing =
           cache?.existing ?? player.weapons.find((w) => w.type === weapon);
 
@@ -670,7 +647,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
         return desc;
       },
-      apply: (player) => {
+      apply() {
         const existing = player.weapons.find((w) => w.type === weapon);
         if (existing) {
           existing.level++;
@@ -699,14 +676,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     {
       name: "Heal",
       description: "+25 health",
-      condition: (player) => player.health + 25 < player.attrs.health.value,
-      apply: (player) => (player.health += 25),
+      condition: () => player.health + 25 < player.attrs.health.value,
+      apply: () => (player.health += 25),
       maxCount: 5,
     },
     {
       name: "Max health",
       description: "+25 max health, +5 health",
-      apply: (player) => {
+      apply: () => {
         player.attrs.health.base.push(25);
         player.health += 5;
       },
@@ -1280,8 +1257,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       stats.push(
         [`${name} level`, weapon.level + 1],
-        // @ts-expect-error can't be bothered to fight the level type here
-        ...weapon.type.stats(weapon, weapon.type.levels[weapon.level]),
+        ...weapon.type
+          // @ts-expect-error can't be bothered to fight the level type here
+          .stats(weapon, weapon.type.levels[weapon.level])
+          .map(([l, v]) => [`${name} ${l}`, v]),
       );
     }
 
@@ -1740,7 +1719,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
         if (justPressedInput.enter) {
           const upgrade = manager.upgrades[manager.selectedUpgradeIndex];
-          upgrade.apply(player);
+          upgrade.apply();
           player.upgrades.push(upgrade);
           manager.state = MANAGER_STATES.RUNNING;
         }
@@ -1796,7 +1775,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       player.nextLevelExperience += 10;
 
       const availableUpgrades = upgrades.filter((upgrade) => {
-        if (upgrade.condition && !upgrade.condition(player)) {
+        if (upgrade.condition && !upgrade.condition()) {
           return false;
         }
 
@@ -1839,7 +1818,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       if (weapon.damageTick <= 0) {
         /** @type {{ damageRate: number }} */
-        // @ts-expect-error can't be bothered to fight the level type here
         const attrs = weapon.type.levels[weapon.level];
         // @ts-expect-error can't be bothered to fight the level type here
         weapon.type.tick(weapon, attrs);
