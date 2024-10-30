@@ -265,7 +265,7 @@ const initializeWeapon = (type) => ({
 const playerTypes = [
   {
     health: 100,
-    speed: 25,
+    speed: 45,
     meleeAngle: Math.PI / 4,
     meleeDistance: 80,
     meleeDamage: 8,
@@ -382,9 +382,9 @@ const upgrades = [
   },
   {
     name: "Melee attack speed",
-    description: "+25% melee attack speed",
+    description: "+10% melee attack speed",
     weight: 1,
-    apply: multiplyAttr("meleeTimeout", 0.75),
+    apply: multiplyAttr("meleeTimeout", 0.9),
     condition: hasMelee,
     maxCount: 5,
   },
@@ -413,20 +413,14 @@ const upgrades = [
     name: "Saw Blades",
     description: "Spinning disks around player",
     weight: 1,
-    apply: (player) => player.weapons.push(initializeWeapon(sawBlades)),
-    maxCount: 1,
-  },
-  {
-    name: "Saw Blades +1 level",
-    description: "Spinning disks around player",
-    weight: 1,
     apply: (player) => {
       const existing = player.weapons.find((w) => w.type === sawBlades);
       if (existing) {
         existing.level++;
+      } else {
+        player.weapons.push(initializeWeapon(sawBlades));
       }
     },
-    condition: (player) => player.weapons.some((w) => w.type === sawBlades),
     maxCount: 5,
   },
 ];
@@ -572,7 +566,7 @@ const defineEnemy = (type) => type;
 
 const boxLevel1 = defineEnemy({
   health: 10,
-  speed: 20,
+  speed: 26,
   damage: 1,
   damageTick: 1,
   experience: 1,
@@ -581,7 +575,7 @@ const boxLevel1 = defineEnemy({
 
 const boxLevel2 = defineEnemy({
   health: 50,
-  speed: 20,
+  speed: 26,
   damage: 1,
   damageTick: 1,
   experience: 2,
@@ -593,7 +587,7 @@ const boxLevel2 = defineEnemy({
 
 const boxLevel3 = defineEnemy({
   health: 100,
-  speed: 21,
+  speed: 30,
   damage: 2,
   damageTick: 1,
   experience: 3,
@@ -606,7 +600,7 @@ const boxLevel3 = defineEnemy({
 
 const boxBoss = defineEnemy({
   health: 500,
-  speed: 20,
+  speed: 30,
   damage: 10,
   damageTick: 1,
   experience: 20,
@@ -616,7 +610,7 @@ const boxBoss = defineEnemy({
 
 const triangleLevel1 = defineEnemy({
   health: 20,
-  speed: 21,
+  speed: 35,
   damage: 2,
   damageTick: 1,
   experience: 2,
@@ -625,7 +619,7 @@ const triangleLevel1 = defineEnemy({
 
 const triangleLevel2 = defineEnemy({
   health: 40,
-  speed: 25,
+  speed: 35,
   damage: 2,
   damageTick: 1,
   experience: 3,
@@ -634,7 +628,7 @@ const triangleLevel2 = defineEnemy({
 
 const triangleLevel3 = defineEnemy({
   health: 60,
-  speed: 25,
+  speed: 35,
   damage: 3,
   damageTick: 1,
   experience: 4,
@@ -643,7 +637,7 @@ const triangleLevel3 = defineEnemy({
 
 const triangleBoss = defineEnemy({
   health: 1000,
-  speed: 25,
+  speed: 35,
   damage: 10,
   damageTick: 1,
   experience: 50,
@@ -654,7 +648,7 @@ const triangleBoss = defineEnemy({
 
 const circleLevel1 = defineEnemy({
   health: 10,
-  speed: 30,
+  speed: 40,
   damage: 1,
   damageTick: 1,
   experience: 3,
@@ -663,7 +657,7 @@ const circleLevel1 = defineEnemy({
 
 const circleLevel2 = defineEnemy({
   health: 20,
-  speed: 35,
+  speed: 40,
   damage: 1,
   damageTick: 1,
   experience: 4,
@@ -672,7 +666,7 @@ const circleLevel2 = defineEnemy({
 
 const circleLevel3 = defineEnemy({
   health: 50,
-  speed: 35,
+  speed: 40,
   damage: 1,
   damageTick: 1,
   experience: 5,
@@ -681,7 +675,7 @@ const circleLevel3 = defineEnemy({
 
 const circleBoss = defineEnemy({
   health: 1000,
-  speed: 35,
+  speed: 40,
   damage: 5,
   damageTick: 1,
   experience: 4,
@@ -692,7 +686,7 @@ const circleBoss = defineEnemy({
 
 const finalBoss = defineEnemy({
   health: 10000,
-  speed: 35,
+  speed: 55,
   damage: 5,
   damageTick: 1,
   experience: 0,
@@ -801,6 +795,29 @@ const PICKUP_TYPES = {
 
 /** @type {Array<{ x: number; y: number; type: number; health?: number; experience?: number; }>} */
 const pickups = [];
+
+function renderBackground() {
+  const startX = Math.floor((player.x - width / 2) / 50) * 50;
+  const startY = Math.floor((player.y - height / 2) / 50) * 50;
+
+  for (let x = startX; x < startX + width; x += 50) {
+    for (let y = startY; y < startY + height; y += 50) {
+      draw.rect(
+        x,
+        y,
+        50,
+        50,
+        x % 100 === 0
+          ? y % 100 === 0
+            ? "#000"
+            : "#111"
+          : y % 100 === 0
+          ? "#111"
+          : "#000"
+      );
+    }
+  }
+}
 
 function renderPlayer() {
   const coneD = 0.2 + (player.meleeTick - player.attrs.meleeTimeout.value);
@@ -1066,6 +1083,7 @@ function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.translate(-player.x + width / 2, -player.y + height / 2);
 
+  renderBackground();
   renderPickups();
   renderPlayer();
   renderEnemies();
