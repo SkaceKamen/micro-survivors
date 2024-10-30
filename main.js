@@ -1237,7 +1237,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const renderPlayerStatsUi = (x, y, w) => {
     const stats = [
       ["Base damage", formatNumber(player.attrs.damage.value)],
-      ["Attack speed", formatNumber(player.attrs.attackSpeed.value, 2)],
+      ["Attack speed", formatNumber(2 - player.attrs.attackSpeed.value, 2)],
       ["Health", floor(player.attrs.health.value)],
       ["Regeneration", formatNumber(player.attrs.healthRegen.value, 2) + "/s"],
       ["Speed", formatNumber(player.attrs.speed.value, 2)],
