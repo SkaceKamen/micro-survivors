@@ -216,33 +216,154 @@ canvas.addEventListener("mousemove", (event) => {
 const WEAPON_TYPES = {
   /** @type {0} */
   SAW_BLADES: 0,
+  /** @type {1} */
+  MELEE: 1,
+  /** @type {2} */
+  AREA: 2,
 };
 
 /**
- * @typedef SawBladesWeapon
- * @property {typeof WEAPON_TYPES.SAW_BLADES} type
- * @property {(level: number) => number} damage
- * @property {(level: number) => number} range
- * @property {(level: number) => number} rotationSpeed
- * @property {(level: number) => number} damageRate
- * @property {(level: number) => number} blades
- * @property {(level: number) => number} size
+ * @typedef SawBladesWeaponLevel
+ * @property {number} damage
+ * @property {number} range
+ * @property {number} rotationSpeed
+ * @property {number} damageRate
+ * @property {number} blades
+ * @property {number} size
  */
 
 /**
- * @typedef {SawBladesWeapon} WeaponType
+ * @typedef SawBladesWeapon
+ * @property {string} name
+ * @property {typeof WEAPON_TYPES.SAW_BLADES} type
+ * @property {SawBladesWeaponLevel[]} levels
  */
 
 /** @type {SawBladesWeapon} */
 const sawBlades = {
+  name: "Saw Blades",
   type: WEAPON_TYPES.SAW_BLADES,
-  damage: (level) => 1 + level,
-  range: () => 50,
-  rotationSpeed: (level) => Math.PI / 2 + level * 0.1,
-  damageRate: () => 0.1,
-  blades: (level) => 2 + Math.floor(level * 0.5),
-  size: () => 10,
+  levels: [
+    {
+      damage: 5,
+      range: 50,
+      rotationSpeed: Math.PI / 2,
+      damageRate: 0.1,
+      blades: 1,
+      size: 10,
+    },
+    {
+      damage: 5,
+      range: 50,
+      rotationSpeed: Math.PI / 2,
+      damageRate: 0.1,
+      blades: 2,
+      size: 10,
+    },
+    {
+      damage: 10,
+      range: 50,
+      rotationSpeed: Math.PI / 4,
+      damageRate: 0.1,
+      blades: 2,
+      size: 10,
+    },
+    {
+      damage: 10,
+      range: 50,
+      rotationSpeed: Math.PI / 4,
+      damageRate: 0.1,
+      blades: 2,
+      size: 15,
+    },
+    {
+      damage: 10,
+      range: 50,
+      rotationSpeed: Math.PI / 4,
+      damageRate: 0.1,
+      blades: 3,
+      size: 15,
+    },
+    {
+      damage: 15,
+      range: 50,
+      rotationSpeed: Math.PI / 4,
+      damageRate: 0.1,
+      blades: 3,
+      size: 15,
+    },
+    {
+      damage: 15,
+      range: 50,
+      rotationSpeed: Math.PI / 4,
+      damageRate: 0.1,
+      blades: 4,
+      size: 15,
+    },
+  ],
 };
+
+/**
+ * @typedef MeleeWeaponLevel
+ * @property {number} damage
+ * @property {number} angle
+ * @property {number} range
+ * @property {number} attackRate
+ */
+
+/**
+ * @typedef MeleeWeapon
+ * @property {string} name
+ * @property {typeof WEAPON_TYPES.MELEE} type
+ * @property {MeleeWeaponLevel[]} levels
+ */
+
+/** @type {MeleeWeapon} */
+const sword = {
+  name: "Sword",
+  type: WEAPON_TYPES.MELEE,
+  levels: [
+    { damage: 8, angle: Math.PI / 4, range: 80, attackRate: 0.5 },
+    { damage: 13, angle: Math.PI / 4, range: 80, attackRate: 0.5 },
+    { damage: 13, angle: (Math.PI / 4) * 1.2, range: 90, attackRate: 0.5 },
+    { damage: 18, angle: (Math.PI / 4) * 1.2, range: 90, attackRate: 0.5 },
+    { damage: 23, angle: (Math.PI / 4) * 1.2, range: 90, attackRate: 0.5 },
+    { damage: 28, angle: (Math.PI / 4) * 1.5, range: 90, attackRate: 0.5 },
+    { damage: 33, angle: (Math.PI / 4) * 1.7, range: 120, attackRate: 0.5 },
+  ],
+};
+
+/**
+ * @typedef AreaWeaponLevel
+ * @property {number} damage
+ * @property {number} range
+ * @property {number} attackRate
+ */
+
+/**
+ * @typedef AreaWeapon
+ * @property {string} name
+ * @property {typeof WEAPON_TYPES.AREA} type
+ * @property {AreaWeaponLevel[]} levels
+ */
+
+/** @type {AreaWeapon} */
+const barbedWire = {
+  name: "Barbed Wire",
+  type: WEAPON_TYPES.AREA,
+  levels: [
+    { range: 40, damage: 2, attackRate: 0.75 },
+    { range: 60, damage: 2, attackRate: 0.75 },
+    { range: 60, damage: 3, attackRate: 0.75 },
+    { range: 70, damage: 3, attackRate: 0.75 },
+    { range: 80, damage: 3, attackRate: 0.75 },
+    { range: 80, damage: 4, attackRate: 0.75 },
+  ],
+};
+
+/**
+ * @typedef {SawBladesWeapon | MeleeWeapon | AreaWeapon} WeaponType
+ */
 
 /**
  * @param {WeaponType} type
@@ -256,17 +377,40 @@ const initializeWeapon = (type) => ({
 
 /** @typedef {ReturnType<typeof initializeWeapon>} Weapon */
 
-const playerTypes = [
-  {
-    health: 100,
-    speed: 45,
-    meleeAngle: Math.PI / 4,
-    meleeDistance: 80,
-    meleeDamage: 8,
-    meleeTimeout: 0.5,
-    pickupDistance: 50,
+/**
+ * @param {number} increasePerLevel
+ * @returns {AttributeEnhancer}
+ */
+const baseIncreaseWithLevel = (increasePerLevel) => (player, value) =>
+  value + player.level * increasePerLevel;
+
+/**
+ * @param {number} value
+ * @returns {AttributeEnhancer}
+ */
+const baseValue = (value) => () => value;
+
+/**
+ * @typedef PlayerType
+ * @property {WeaponType[]} weapons
+ * @property {Record<keyof Player['attrs'], AttributeEnhancer[]>} attrs
+ */
+
+/** @param {PlayerType} t */
+const playerType = (t) => t;
+
+const warrior = playerType({
+  weapons: [sword, barbedWire],
+
+  attrs: {
+    health: [baseValue(100), baseIncreaseWithLevel(10)],
+    speed: [baseValue(45), baseIncreaseWithLevel(0.2)],
+    healthRegen: [baseValue(0.1), baseIncreaseWithLevel(0.01)],
+    pickupDistance: [baseValue(50)],
+    damage: [baseIncreaseWithLevel(0.3)],
+    attackSpeed: [baseValue(1)],
   },
-];
+});
 
 /** @typedef {(player: Player) => void} UpgradeApply */
 /** @typedef {(player: Player) => boolean} UpgradeCondition */
@@ -274,15 +418,12 @@ const playerTypes = [
 /**
  * @typedef Upgrade
  * @property {string} name
- * @property {string} description
+ * @property {string | (() => string)} description
  * @property {number} weight
  * @property {UpgradeApply} apply
  * @property {number} maxCount
  * @property {UpgradeCondition} [condition]
  */
-
-/** @type {UpgradeCondition} */
-const hasMelee = (player) => player.attrs.meleeDamage.value > 0;
 
 /**
  * @param {keyof Player['attrs']} attr
@@ -299,6 +440,68 @@ const baseAttr = (attr, change) => (player) =>
  */
 const multiplyAttr = (attr, change) => (player) =>
   player.attrs[attr].push("multiplier", (_, value) => value * change);
+
+/**
+ * @param {WeaponType} weapon
+ * @param {string} name
+ * @returns {Upgrade}
+ */
+const weaponUpgrade = (weapon, name) => {
+  /** @type {undefined | { level: number; existing: Weapon; desc: string; }} */
+  let cache;
+
+  return {
+    name,
+    description: () => {
+      const existing =
+        cache?.existing ?? player.weapons.find((w) => w.type === weapon);
+
+      if (!existing) {
+        return "New weapon";
+      }
+
+      if (cache?.level === existing.level) {
+        return cache.desc;
+      }
+
+      const currentLevel = existing.type.levels[existing.level];
+      const nextLevel = existing.type.levels[existing.level + 1];
+      const result = [];
+
+      for (const key in nextLevel) {
+        if (nextLevel[key] !== currentLevel[key]) {
+          const diff = nextLevel[key] - currentLevel[key];
+          const str =
+            key === "angle"
+              ? `${(diff * (180 / Math.PI)).toFixed(0)}°`
+              : diff.toFixed(0);
+
+          result.push(`+${str} ${key}`);
+        }
+      }
+
+      const desc = result.join(", ");
+
+      cache = {
+        level: existing.level,
+        existing,
+        desc,
+      };
+
+      return desc;
+    },
+    weight: 1,
+    apply: (player) => {
+      const existing = player.weapons.find((w) => w.type === weapon);
+      if (existing) {
+        existing.level++;
+      } else {
+        player.weapons.push(initializeWeapon(weapon));
+      }
+    },
+    maxCount: weapon.levels.length,
+  };
+};
 
 /** @type {Upgrade[]} */
 const upgrades = [
@@ -320,7 +523,7 @@ const upgrades = [
     name: "Heal",
     description: "+25 health",
     weight: 1,
-    condition: (player) => player.health < player.attrs.health.value,
+    condition: (player) => player.health + 25 < player.attrs.health.value,
     apply: (player) => (player.health += 25),
     maxCount: 5,
   },
@@ -332,54 +535,6 @@ const upgrades = [
       player.attrs.health.push("base", (_, value) => value + 25);
       player.health += 5;
     },
-    maxCount: 5,
-  },
-  {
-    name: "Melee damage",
-    description: "+5 base melee damage",
-    weight: 1,
-    apply: baseAttr("meleeDamage", 5),
-    condition: hasMelee,
-    maxCount: 5,
-  },
-  {
-    name: "Melee damage boost",
-    description: "+25% melee damage",
-    weight: 1,
-    apply: multiplyAttr("meleeDamage", 1.25),
-    condition: hasMelee,
-    maxCount: 5,
-  },
-  {
-    name: "Melee range",
-    description: "+10 melee range",
-    weight: 1,
-    apply: baseAttr("meleeDistance", 10),
-    condition: hasMelee,
-    maxCount: 5,
-  },
-  {
-    name: "Melee range boost",
-    description: "+15% melee range",
-    weight: 1,
-    apply: multiplyAttr("meleeDistance", 1.15),
-    condition: hasMelee,
-    maxCount: 5,
-  },
-  {
-    name: "Melee wider cone",
-    description: "+10% melee cone width",
-    weight: 1,
-    apply: multiplyAttr("meleeAngle", 1.1),
-    condition: hasMelee,
-    maxCount: 5,
-  },
-  {
-    name: "Melee attack speed",
-    description: "+10% melee attack speed",
-    weight: 1,
-    apply: multiplyAttr("meleeTimeout", 0.9),
-    condition: hasMelee,
     maxCount: 5,
   },
   {
@@ -404,34 +559,36 @@ const upgrades = [
     maxCount: 5,
   },
   {
-    name: "Saw Blades",
-    description: "Spinning disks around player",
+    name: "Damage",
+    description: "+2 damage",
     weight: 1,
-    apply: (player) => {
-      const existing = player.weapons.find((w) => w.type === sawBlades);
-      if (existing) {
-        existing.level++;
-      } else {
-        player.weapons.push(initializeWeapon(sawBlades));
-      }
-    },
+    apply: baseAttr("damage", 1),
     maxCount: 5,
   },
+  {
+    name: "Attack speed",
+    description: "+5% attack speed",
+    weight: 1,
+    apply: baseAttr("attackSpeed", -0.05),
+    maxCount: 5,
+  },
+  weaponUpgrade(sawBlades, "Saw Blades"),
+  weaponUpgrade(sword, "Sword"),
+  weaponUpgrade(barbedWire, "Barbed Wire"),
 ];
 
-/** @typedef {(player: any, value: number, attribute: string) => number} AttributeEnhancer */
+/** @typedef {(player: Player, value: number) => number} AttributeEnhancer */
 /** @typedef {{ base: AttributeEnhancer[]; multiplier: AttributeEnhancer[]; playerLevel: number; value: number; }} AttributeCache */
 
 /**
- * @param {string} attribute
- * @param {any[]} [base]
- * @param {any[]} [multiplier]
+ * @param {AttributeEnhancer[]} [base]
+ * @param {AttributeEnhancer[]} [multiplier]
  */
-const createAttribute = (attribute, base = [], multiplier = []) => ({
+const createAttribute = (base = [], multiplier = []) => ({
   /**
    * Add a new attribute modifier function
    * @param {'base' | 'multiplier'} type
-   * @param {(player: Player, value: number, attribute: string) => number} fn
+   * @param {(player: Player, value: number) => number} fn
    */
   push(type, fn) {
     this[type] = [...this[type], fn];
@@ -439,11 +596,7 @@ const createAttribute = (attribute, base = [], multiplier = []) => ({
 
   // Base attribute value modifiers
   /** @type {AttributeEnhancer[]} */
-  base: [
-    // Default attribute value comes from the player type
-    (player, value) => value + playerTypes[player.type][attribute],
-    ...base,
-  ],
+  base: [...base],
 
   // Multiplier attribute value modifiers
   /** @type {AttributeEnhancer[]} */
@@ -461,8 +614,8 @@ const createAttribute = (attribute, base = [], multiplier = []) => ({
     }
 
     const value =
-      this.base.reduce((acc, fn) => fn(player, acc, attribute), 0) *
-      this.multiplier.reduce((acc, fn) => fn(player, acc, attribute), 1);
+      this.base.reduce((acc, fn) => fn(player, acc), 0) *
+      this.multiplier.reduce((acc, fn) => fn(player, acc), 1);
 
     this.$cached = {
       base: this.base,
@@ -478,19 +631,34 @@ const createAttribute = (attribute, base = [], multiplier = []) => ({
 /** @typedef {ReturnType<typeof createAttribute>} PlayerAttribute */
 
 /**
- * @param {number} increasePerLevel
- * @returns {AttributeEnhancer}
+ * @typedef Player
+ * @property {PlayerType} type
+ * @property {number} x
+ * @property {number} y
+ * @property {number} level
+ * @property {number} experience
+ * @property {number} nextLevelExperience
+ * @property {number} health
+ * @property {number} meleeTick
+ * @property {number} lastDamagedTick
+ * @property {number} lastPickupTick
+ * @property {number} meleeDirection
+ * @property {Object} attrs
+ * @property {PlayerAttribute} attrs.speed
+ * @property {PlayerAttribute} attrs.health
+ * @property {PlayerAttribute} attrs.healthRegen
+ * @property {PlayerAttribute} attrs.pickupDistance
+ * @property {PlayerAttribute} attrs.damage
+ * @property {PlayerAttribute} attrs.attackSpeed
+ * @property {Upgrade[]} upgrades
+ * @property {Weapon[]} weapons
  */
-const baseIncreaseWithLevel = (increasePerLevel) => (player, value) =>
-  value + player.level * increasePerLevel;
 
 /**
- * @param {number} value
- * @returns {AttributeEnhancer}
+ * @param {PlayerType} type
+ * @returns {Player}
  */
-const baseValue = (value) => () => value;
-
-const createPlayer = (type = 0) => ({
+const createPlayer = (type) => ({
   // Predefined constants
   type,
 
@@ -508,28 +676,22 @@ const createPlayer = (type = 0) => ({
 
   // Attribute values
   attrs: {
-    speed: createAttribute("speed", [baseIncreaseWithLevel(0.2)]),
-    health: createAttribute("health", [baseIncreaseWithLevel(10)]),
-    healthRegen: createAttribute("healthRegen", [baseValue(0.1)]),
-    meleeAngle: createAttribute("meleeAngle"),
-    meleeDistance: createAttribute("meleeDistance"),
-    meleeDamage: createAttribute("meleeDamage", [baseIncreaseWithLevel(0.5)]),
-    meleeTimeout: createAttribute("meleeTimeout"),
-    pickupDistance: createAttribute("pickupDistance"),
+    speed: createAttribute(type.attrs.speed),
+    health: createAttribute(type.attrs.health),
+    healthRegen: createAttribute(type.attrs.healthRegen),
+    pickupDistance: createAttribute(type.attrs.pickupDistance),
+    damage: createAttribute(type.attrs.damage),
+    attackSpeed: createAttribute(type.attrs.attackSpeed),
   },
 
-  // Already applied upgrades, index in upgrades array
-  /** @type {Upgrade[]} */
+  // Already applied upgrades
   upgrades: [],
 
   // Weapons
-  /** @type {Weapon[]} */
-  weapons: [],
+  weapons: type.weapons.map((w) => initializeWeapon(w)),
 });
 
-/** @typedef {ReturnType<typeof createPlayer>} Player */
-
-let player = createPlayer();
+let player = createPlayer(warrior);
 
 const MANAGER_STATES = {
   RUNNING: 0,
@@ -807,9 +969,11 @@ const pickups = [];
 function renderBackground() {
   const startX = Math.floor((player.x - width / 2) / 50) * 50;
   const startY = Math.floor((player.y - height / 2) / 50) * 50;
+  const endX = Math.ceil((player.x + width / 2) / 50) * 50;
+  const endY = Math.ceil((player.y + height / 2) / 50) * 50;
 
-  for (let x = startX; x < startX + width; x += 50) {
-    for (let y = startY; y < startY + height; y += 50) {
+  for (let x = startX; x < endX; x += 50) {
+    for (let y = startY; y < endY; y += 50) {
       draw.rect(
         x,
         y,
@@ -828,49 +992,62 @@ function renderBackground() {
 }
 
 function renderPlayer() {
-  const coneD = 0.2 + (player.meleeTick - player.attrs.meleeTimeout.value);
-  if (coneD > 0) {
-    const coneA2 = player.attrs.meleeAngle.value / 2;
-
-    ctx.fillStyle = `rgba(255, 255, 255, ${coneD})`;
-    ctx.beginPath();
-    ctx.moveTo(player.x, player.y);
-    ctx.lineTo(
-      player.x +
-        Math.cos(player.meleeDirection - coneA2) *
-          player.attrs.meleeDistance.value,
-      player.y +
-        Math.sin(player.meleeDirection - coneA2) *
-          player.attrs.meleeDistance.value
-    );
-
-    ctx.arc(
-      player.x,
-      player.y,
-      player.attrs.meleeDistance.value,
-      player.meleeDirection - coneA2,
-      player.meleeDirection + coneA2
-    );
-
-    ctx.lineTo(player.x, player.y);
-    ctx.fill();
-  }
-
   for (const weapon of player.weapons) {
     switch (weapon.type.type) {
       case WEAPON_TYPES.SAW_BLADES: {
         const data = weapon.type;
+        const attrs = data.levels[weapon.level];
 
-        const anglePerBlade = (Math.PI * 2) / data.blades(weapon.level);
-        const baseAngle = weapon.tick * data.rotationSpeed(weapon.level);
+        const anglePerBlade = (Math.PI * 2) / attrs.blades;
+        const baseAngle = weapon.tick * attrs.rotationSpeed;
 
-        for (let i = 0; i < data.blades(weapon.level); i++) {
+        for (let i = 0; i < attrs.blades; i++) {
           const angle = baseAngle + anglePerBlade * i;
-          const bladeX = player.x + Math.cos(angle) * data.range(weapon.level);
-          const bladeY = player.y + Math.sin(angle) * data.range(weapon.level);
+          const bladeX = player.x + Math.cos(angle) * attrs.range;
+          const bladeY = player.y + Math.sin(angle) * attrs.range;
 
-          draw.circle(bladeX, bladeY, data.size(weapon.level) / 2, "#fff");
+          draw.circle(bladeX, bladeY, attrs.size / 2, "#fff");
         }
+
+        break;
+      }
+
+      case WEAPON_TYPES.MELEE: {
+        const attrs = weapon.type.levels[weapon.level];
+
+        const coneD = 0.2 + (weapon.damageTick - attrs.attackRate);
+        if (coneD > 0) {
+          const coneA2 = attrs.angle / 2;
+
+          ctx.fillStyle = `rgba(255, 255, 255, ${coneD})`;
+          ctx.beginPath();
+          ctx.moveTo(player.x, player.y);
+          ctx.lineTo(
+            player.x + Math.cos(player.meleeDirection - coneA2) * attrs.range,
+            player.y + Math.sin(player.meleeDirection - coneA2) * attrs.range
+          );
+
+          ctx.arc(
+            player.x,
+            player.y,
+            attrs.range,
+            player.meleeDirection - coneA2,
+            player.meleeDirection + coneA2
+          );
+
+          ctx.lineTo(player.x, player.y);
+          ctx.fill();
+        }
+
+        break;
+      }
+
+      case WEAPON_TYPES.AREA: {
+        const attrs = weapon.type.levels[weapon.level];
+
+        draw.circle(player.x, player.y, attrs.range, "rgba(255, 0, 0, 0.2)");
+
+        break;
       }
     }
   }
@@ -909,17 +1086,51 @@ function renderPickups() {
  */
 function renderPlayerStatsUi(x, y, w) {
   const stats = [
+    ["Base damage", player.attrs.damage.value.toFixed(0)],
+    ["Attack speed", player.attrs.attackSpeed.value.toFixed(2)],
     ["Health", Math.floor(player.attrs.health.value)],
-    ["Health Regen", player.attrs.healthRegen.value.toFixed(2) + "/s"],
+    ["Regeneration", player.attrs.healthRegen.value.toFixed(2) + "/s"],
     ["Speed", player.attrs.speed.value.toFixed(2)],
-    ["Melee damage", player.attrs.meleeDamage.value.toFixed(2)],
-    ["Melee range", player.attrs.meleeDistance.value.toFixed(2)],
-    [
-      "Melee angle",
-      (player.attrs.meleeAngle.value * (180 / Math.PI)).toFixed(2),
-    ],
-    ["Melee speed", player.attrs.meleeTimeout.value.toFixed(2)],
   ];
+
+  for (const weapon of player.weapons) {
+    const name = weapon.type.name;
+
+    switch (weapon.type.type) {
+      case WEAPON_TYPES.MELEE: {
+        const attrs = weapon.type.levels[weapon.level];
+
+        stats.push([`${name} level`, weapon.level + 1]);
+        stats.push([`${name} damage`, attrs.damage.toFixed(0)]);
+        stats.push([`${name} range`, attrs.range.toFixed(0)]);
+        stats.push([
+          `${name} angle`,
+          `${(attrs.angle * (180 / Math.PI)).toFixed(0)}°`,
+        ]);
+        break;
+      }
+
+      case WEAPON_TYPES.SAW_BLADES: {
+        const attrs = weapon.type.levels[weapon.level];
+
+        stats.push([`${name} level`, weapon.level + 1]);
+        stats.push([`${name} damage`, attrs.damage.toFixed(0)]);
+        stats.push([`${name} range`, attrs.range.toFixed(0)]);
+        stats.push([`${name} blades`, attrs.blades.toFixed(0)]);
+        stats.push([`${name} size`, attrs.size.toFixed(0)]);
+        break;
+      }
+
+      case WEAPON_TYPES.AREA: {
+        const attrs = weapon.type.levels[weapon.level];
+
+        stats.push([`${name} level`, weapon.level + 1]);
+        stats.push([`${name} damage`, attrs.damage.toFixed(0)]);
+        stats.push([`${name} range`, attrs.range.toFixed(0)]);
+        break;
+      }
+    }
+  }
 
   for (let i = 0; i < stats.length; i++) {
     const [name, value] = stats[i];
@@ -1033,7 +1244,13 @@ function renderUI() {
       ctx.fillText(upgrade.name, x + 5, y + 5);
 
       ctx.fillStyle = "#ccc";
-      ctx.fillText(upgrade.description, x + 5, y + 22);
+      ctx.fillText(
+        typeof upgrade.description === "function"
+          ? upgrade.description()
+          : upgrade.description,
+        x + 5,
+        y + 22
+      );
 
       draw.text(
         x + width - 50,
@@ -1267,7 +1484,7 @@ function spawnEnemy(type) {
 }
 
 function startNewGame() {
-  player = createPlayer();
+  player = createPlayer(warrior);
 
   for (const key in startingManagerState) {
     manager[key] = startingManagerState[key];
@@ -1409,13 +1626,6 @@ function playerTick(deltaTime) {
     input.targetX - playerAbsoluteX
   );
 
-  if (player.meleeTick > 0) {
-    player.meleeTick -= deltaTime;
-  } else {
-    applyPlayerMeleeAttack(deltaTime);
-    player.meleeTick = player.attrs.meleeTimeout.value;
-  }
-
   if (player.experience >= player.nextLevelExperience) {
     player.level += 1;
     player.experience -= player.nextLevelExperience;
@@ -1423,7 +1633,7 @@ function playerTick(deltaTime) {
 
     manager.state = MANAGER_STATES.PICKING_UPGRADE;
 
-    const availableUpgrades = upgrades.filter((upgrade) => {
+    const availableUpgrades = upgrades.filter((upgrade, index) => {
       if (upgrade.condition && !upgrade.condition(player)) {
         return false;
       }
@@ -1463,35 +1673,32 @@ function playerTick(deltaTime) {
     switch (weapon.type.type) {
       case WEAPON_TYPES.SAW_BLADES: {
         const data = weapon.type;
+        const attrs = data.levels[weapon.level];
+        const damage = attrs.damage + player.attrs.damage.value;
 
         if (weapon.damageTick <= 0) {
-          weapon.damageTick = data.damageRate(weapon.level);
+          weapon.damageTick = attrs.damageRate * player.attrs.attackSpeed.value;
 
-          const anglePerBlade = (Math.PI * 2) / data.blades(weapon.level);
-          const baseAngle = weapon.tick * data.rotationSpeed(weapon.level);
+          const anglePerBlade = (Math.PI * 2) / attrs.blades;
+          const baseAngle = weapon.tick * attrs.rotationSpeed;
 
-          for (let i = 0; i < data.blades(weapon.level); i++) {
+          for (let i = 0; i < attrs.blades; i++) {
             const angle = baseAngle + anglePerBlade * i;
-            const bladeX =
-              player.x + Math.cos(angle) * data.range(weapon.level);
-            const bladeY =
-              player.y + Math.sin(angle) * data.range(weapon.level);
+            const bladeX = player.x + Math.cos(angle) * attrs.range;
+            const bladeY = player.y + Math.sin(angle) * attrs.range;
 
             for (const enemy of enemies) {
               const dx = enemy.x - bladeX;
               const dy = enemy.y - bladeY;
               const distance = Math.sqrt(dx * dx + dy * dy);
 
-              if (
-                distance <
-                data.size(weapon.level) / 2 + enemy.type.size + 2
-              ) {
-                enemy.health -= data.damage(weapon.level);
+              if (distance < attrs.size / 2 + enemy.type.size + 2) {
+                enemy.health -= damage;
                 enemy.hitTick = 0.1;
                 enemy.pushBackX = Math.cos(angle) * 20;
                 enemy.pushBackY = Math.sin(angle) * 20;
 
-                manager.damageDone += data.damage(weapon.level);
+                manager.damageDone += damage;
               }
             }
           }
@@ -1499,6 +1706,50 @@ function playerTick(deltaTime) {
           weapon.damageTick -= deltaTime;
         }
 
+        break;
+      }
+
+      case WEAPON_TYPES.MELEE: {
+        if (weapon.damageTick > 0) {
+          weapon.damageTick -= deltaTime;
+        } else {
+          applyPlayerMeleeAttack(weapon, weapon.type);
+
+          weapon.damageTick =
+            weapon.type.levels[weapon.level].attackRate *
+            player.attrs.attackSpeed.value;
+        }
+        break;
+      }
+
+      case WEAPON_TYPES.AREA: {
+        if (weapon.damageTick > 0) {
+          weapon.damageTick -= deltaTime;
+        } else {
+          const attrs = weapon.type.levels[weapon.level];
+          const damage = attrs.damage + player.attrs.damage.value;
+
+          for (const enemy of enemies) {
+            const dx = enemy.x - player.x;
+            const dy = enemy.y - player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < attrs.range) {
+              enemy.health -= damage;
+              enemy.hitTick = 0.1;
+
+              // TODO: Should this have push-back?
+              // enemy.pushBackX = Math.cos(angle) * 20;
+              // enemy.pushBackY = Math.sin(angle) * 20;
+
+              manager.damageDone += damage;
+            }
+          }
+
+          weapon.damageTick =
+            weapon.type.levels[weapon.level].attackRate *
+            player.attrs.attackSpeed.value;
+        }
         break;
       }
     }
@@ -1548,10 +1799,14 @@ function pickupsTick(deltaTime) {
 }
 
 /**
- * @param {number} deltaTime
+ * @param {Weapon} weapon
+ * @param {MeleeWeapon} type
  */
-function applyPlayerMeleeAttack(deltaTime) {
-  const coneA2 = player.attrs.meleeAngle.value / 2;
+function applyPlayerMeleeAttack(weapon, type) {
+  const attrs = type.levels[weapon.level];
+  const damage = attrs.damage + player.attrs.damage.value;
+
+  const coneA2 = attrs.angle / 2;
   const coneStart = player.meleeDirection - coneA2;
   const coneEnd = player.meleeDirection + coneA2;
 
@@ -1563,13 +1818,13 @@ function applyPlayerMeleeAttack(deltaTime) {
     if (angle > coneStart && angle < coneEnd) {
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      if (distance < player.attrs.meleeDistance.value) {
-        enemy.health -= player.attrs.meleeDamage.value;
+      if (distance < attrs.range) {
+        enemy.health -= damage;
         enemy.hitTick = 0.1;
         enemy.pushBackX = Math.cos(angle) * 25;
         enemy.pushBackY = Math.sin(angle) * 25;
 
-        manager.damageDone += player.attrs.meleeDamage.value;
+        manager.damageDone += damage;
       }
     }
   }
