@@ -41,13 +41,25 @@ document.addEventListener("keyup", (event) => {
   }
 });
 
+canvas.addEventListener("mousemove", (event) => {
+  input.targetX = event.clientX;
+  input.targetY = event.clientY;
+});
+
 const player = {
   x: 0,
   y: 0,
   level: 0,
   experience: 0,
   health: 100,
-  speed: 12,
+  maxHealth: 100,
+  speed: 25,
+  coneAngle: Math.PI / 4,
+  coneDistance: 80,
+  coneDirection: 0,
+  coneDamage: 8,
+  coneTick: 0,
+  coneTimeout: 0.5,
 };
 
 const input = {
@@ -55,6 +67,8 @@ const input = {
   down: false,
   left: false,
   right: false,
+  targetX: 0,
+  targetY: 0,
 };
 
 const state = {
@@ -67,25 +81,48 @@ const state = {
 const enemyTypes = [
   {
     health: 10,
-    speed: 10,
+    speed: 20,
     damage: 1,
     damageTick: 1,
   },
 ];
 
-/** @typedef {{ x: number; y: number; type: number; health: number; damageTick: number; }} Enemy */
+/** @typedef {{ x: number; y: number; type: number; health: number; hitTick: number; damageTick: number; }} Enemy */
 /** @type {Enemy[]} */
 const enemies = [];
 
 function renderPlayer() {
+  const coneD = 0.2 + (player.coneTick - player.coneTimeout);
+  if (coneD > 0) {
+    const coneA2 = player.coneAngle / 2;
+
+    ctx.fillStyle = `rgba(255, 255, 255, ${coneD})`;
+    ctx.beginPath();
+    ctx.moveTo(player.x, player.y);
+    ctx.lineTo(
+      player.x + Math.cos(player.coneDirection - coneA2) * player.coneDistance,
+      player.y + Math.sin(player.coneDirection - coneA2) * player.coneDistance
+    );
+
+    ctx.arc(
+      player.x,
+      player.y,
+      player.coneDistance,
+      player.coneDirection - coneA2,
+      player.coneDirection + coneA2
+    );
+
+    ctx.lineTo(player.x, player.y);
+    ctx.fill();
+  }
+
   ctx.fillStyle = "#fff";
   ctx.fillRect(player.x - 5, player.y - 5, 10, 10);
 }
 
 function renderEnemies() {
-  ctx.fillStyle = "#aaa";
-
   for (const enemy of enemies) {
+    ctx.fillStyle = enemy.hitTick > 0 ? "#fff" : "#aaa";
     ctx.fillRect(enemy.x - 5, enemy.y - 5, 10, 10);
   }
 }
@@ -106,8 +143,21 @@ function gameLogicTick(deltaTime) {
 }
 
 function enemiesTick(deltaTime) {
+  let index = 0;
+  let enemiesToRemove = [];
+
   for (const enemy of enemies) {
     const type = enemyTypes[enemy.type];
+
+    if (enemy.health <= 0) {
+      enemiesToRemove.push(index);
+      index++;
+      continue;
+    }
+
+    if (enemy.hitTick > 0) {
+      enemy.hitTick -= deltaTime;
+    }
 
     const dx = player.x - enemy.x;
     const dy = player.y - enemy.y;
@@ -129,6 +179,14 @@ function enemiesTick(deltaTime) {
       // Reset attack tick
       enemy.damageTick -= deltaTime;
     }
+
+    index++;
+  }
+
+  let offset = 0;
+  for (const index of enemiesToRemove) {
+    enemies.splice(index - offset, 1);
+    offset += 1;
   }
 }
 
@@ -175,6 +233,49 @@ function playerTick(deltaTime) {
   if (moveD > 0) {
     player.x += (moveX / moveD) * speed;
     player.y += (moveY / moveD) * speed;
+  }
+
+  const playerAbsoluteX = width / 2;
+  const playerAbsoluteY = height / 2;
+
+  player.coneDirection = Math.atan2(
+    input.targetY - playerAbsoluteY,
+    input.targetX - playerAbsoluteX
+  );
+
+  if (player.coneTick > 0) {
+    player.coneTick -= deltaTime;
+  } else {
+    applyPlayerConeAttack(deltaTime);
+    player.coneTick = player.coneTimeout;
+  }
+}
+
+function applyPlayerConeAttack(deltaTime) {
+  const coneStart = player.coneDirection - player.coneAngle / 2;
+  const coneEnd = player.coneDirection + player.coneAngle / 2;
+
+  for (const enemy of enemies) {
+    const dx = enemy.x - player.x;
+    const dy = enemy.y - player.y;
+
+    if (
+      Math.abs(dx) > player.coneDistance ||
+      Math.abs(dy) > player.coneDistance
+    ) {
+      continue;
+    }
+
+    const angle = Math.atan2(dy, dx);
+
+    if (angle > coneStart && angle < coneEnd) {
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < player.coneDistance) {
+        enemy.health -= player.coneDamage;
+        enemy.hitTick = 0.1;
+      }
+    }
   }
 }
 
