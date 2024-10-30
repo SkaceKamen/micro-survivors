@@ -1,15 +1,22 @@
-## Micro Survivor
+# Micro Survivor
 
 Tiny survivors-like game that fits under 14 kB of minified JS code.
 
-### Features
+## Features
 
 - multiple player classes
 - 3 different weapons
 - bosses
 - 14 kB minified, 7 kB gzipped
 
-### Injecting into your website
+## Screenshots
+
+![ingame](./media/ingame.png)
+![classes](./media/class-picker.png)
+![level-up](./media/level-up.png)
+![start](./media/start.png)
+
+## Embedding into your website
 
 ```javascript
 // injects the game canvas into element with id="survivors"
