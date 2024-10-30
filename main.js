@@ -3,7 +3,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /*
   TODO:
    - touch controls support?
-   - audio?
 */
 
   // #region Constants
@@ -70,13 +69,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   // #region Audio
   // prettier-ignore
   const audio = {
-    // enter: [2.2,,202,.02,,.05,,3.1,,-53,,,.12,,7.2,.5,.23,.56,.02,.38],
     interactionClick: [3,,42,.01,.01,.02,3,2,,2,,,,,193,.6,,.53,.02],
     pickup: [.2,,577,,.05,.09,,3.6,,,,,,,,,,.64,.03,,-1499],
     levelUp: [.6,,599,.06,.11,.17,,1.2,-1,-5,254,.06,.1,.1,12,,,.86,.25,,-972],
     enemyHit: [.3,,142,,.23,.5,1,,-2.6,-24,,,.09,,,,,.1,.06],
     playerHit: [0.7,,480,.02,.04,.18,3,2.3,,,,,,.6,,.4,,.85,.01,,99],
-    // enemyHit: [.5,,86,.03,.02,.23,,1.9,,,,,.02,1.1,,.1,.03,.95,.03,.44]
   }
   // #endregion
 
