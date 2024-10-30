@@ -377,7 +377,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @property {TLevel[]} levels
    * @property {(weapon: Weapon, level: TLevel) => void} render
    * @property {(weapon: Weapon, level: TLevel) => void} tick
-   * @property {(weapon: Weapon, level: TLevel, nextLevel?: TLevel) => [string, number, ((input: number) => string)?][]} stats
+   * @property {(level: TLevel, nextLevel?: TLevel) => [string, number, ((input: number) => string)?][]} stats
    */
 
   /**
@@ -417,7 +417,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   };
 
   /**
-   *
    * @param {MagicOrbsWeaponLevel} attrs
    * @param {number} tick
    * @param {(orbX: number, orbY: number, angle: number) => void} fn
@@ -477,7 +476,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         draw.circle(orbX, orbY, radius / 2, white);
       });
     },
-    stats: (_, attrs, attrs1) => [
+    stats: (attrs, attrs1) => [
       [`damage`, optionalStatsDiff(attrs.damage, attrs1?.damage)],
       [`range`, optionalStatsDiff(attrs.area, attrs1?.area)],
       [
@@ -573,7 +572,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         ctx.fill();
       }
     },
-    stats: (_, attrs, attrs1) => [
+    stats: (attrs, attrs1) => [
       [`damage`, optionalStatsDiff(attrs.damage, attrs1?.damage)],
       [`range`, optionalStatsDiff(attrs.area, attrs1?.area)],
       [`angle`, optionalStatsDiff(attrs.angle, attrs1?.angle), fAngle],
@@ -625,7 +624,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       draw.circle(player.x, player.y, area, `rgba(255,0,0,${alpha})`);
     },
-    stats: (_, attrs, attrs1) => [
+    stats: (attrs, attrs1) => [
       [`damage`, optionalStatsDiff(attrs.damage, attrs1?.damage)],
       [`range`, optionalStatsDiff(attrs.area, attrs1?.area)],
     ],
@@ -766,7 +765,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         const nextLevel = existing.typ.levels[existing.lvl + 1];
 
         // @ts-expect-error level typing is broken
-        const stats = existing.typ.stats(existing, currentLevel, nextLevel);
+        const stats = existing.typ.stats(currentLevel, nextLevel);
         const desc = stats
           .filter((s) => !!s[1])
           .map(([l, v, f = fNumber]) => `+${f(v)} ${l}`)
@@ -1394,7 +1393,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         [`${name} level`, weapon.lvl + 1],
         ...weapon.typ
           // @ts-expect-error can't be bothered to fight the level type here
-          .stats(weapon, weapon.typ.levels[weapon.lvl])
+          .stats(weapon.typ.levels[weapon.lvl])
           .map(([l, v, f = fNumber]) => [`${name} ${l}`, f(v)]),
       );
     }
