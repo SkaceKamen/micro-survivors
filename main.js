@@ -2,13 +2,18 @@
 function microSurvivors(target = document.body, width = 400, height = 400) {
   /*
   TODO:
-   - add pickup weapons:
-    - shuriken - ranged attack in random direction
-    - lightning - chain lightning attack?
-   - add armor and relevant upgrades?
-   - more enemies?
-    - enemy with ranged attack?
-    - enemy with unusual movement pattern?
+   - add area attribute
+   - phone support?
+   - audio?
+   - more player types:
+    - monk
+      - base weapon: barbed wire
+      - base attributes exclude armor, higher speed
+      - focused on healing and passive damage
+      - cannot pickup melee weapons?
+    - magic man
+      - base weapon: saw blades
+      - area increases with level
 */
 
   // #region Constants
@@ -82,16 +87,30 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   /**
    * @template A
-   * @param {A[]} array
+   * @param {Array<{val: A; weight: number}>} array
    * @returns {A[]}
    */
-  const shuffleArray = (array) => {
+  const weightedShuffleArray = (array) => {
     for (let i = array.length - 1; i >= 0; i--) {
-      const j = floor(random() * (i + 1));
+      const j = weightedIndexChoice(array.slice(i));
       [array[i], array[j]] = [array[j], array[i]];
     }
-    return array;
+    return array.map((v) => v.val);
   };
+
+  /**
+   * @template T
+   * @param {Array<{ weight: number; val: T }>} arr
+   * @returns
+   */
+  function weightedIndexChoice(arr) {
+    const totalWeight = arr.map((v) => v.weight).reduce((x, y) => x + y);
+    const val = random() * totalWeight;
+    for (let i = 0, cur = 0; ; i++) {
+      cur += arr[i].weight;
+      if (val <= cur) return i;
+    }
+  }
 
   /**
    * @template A
@@ -610,6 +629,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @property {UpgradeApply} use
    * @property {number} maxCount
    * @property {UpgradeCondition} [condition]
+   * @property {() => number} [wght]
    */
 
   /**
@@ -660,6 +680,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           player.weapons.push(initializeWeapon(weapon));
         }
       },
+      // New weapons have smaller probability than weapon level ups
+      wght: () => (player.weapons.some((w) => w.typ === weapon) ? 10 : 4),
       maxCount: weapon.levels.length - 1,
     };
   };
@@ -1803,24 +1825,28 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       player.experience -= player.nextLevelExperience;
       player.nextLevelExperience += 10;
 
-      const availableUpgrades = upgrades.filter((upgrade) => {
-        if (upgrade.condition && !upgrade.condition()) {
-          return false;
-        }
+      const availableUpgrades = upgrades
+        .filter((upgrade) => {
+          if (upgrade.condition && !upgrade.condition()) {
+            return false;
+          }
 
-        if (
-          upgrade.maxCount &&
-          player.upgrades.filter((u) => u === upgrade).length >=
-            upgrade.maxCount
-        ) {
-          return false;
-        }
+          if (
+            upgrade.maxCount &&
+            player.upgrades.filter((u) => u === upgrade).length >=
+              upgrade.maxCount
+          ) {
+            return false;
+          }
 
-        return true;
-      });
+          return true;
+        })
+        .map((u) => ({
+          val: u,
+          weight: u.wght?.() ?? 10,
+        }));
 
-      // TODO: Weights
-      manager.upgrades = shuffleArray(availableUpgrades).slice(0, 3);
+      manager.upgrades = weightedShuffleArray(availableUpgrades).slice(0, 3);
 
       if (manager.upgrades.length > 0) {
         manager.gameState = MANAGER_STATES.PICKING_UPGRADE;
