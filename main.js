@@ -17,12 +17,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   // #region Constants
   const font = "monospace";
-  const help = [
-    "WASD/Arrows to move",
-    "Mouse to aim",
-    "Survive",
-    "Kill end boss",
-  ];
+  const help = ["WASD to move", "Mouse to aim", "Survive", "Kill end boss"];
   const w2 = width / 2;
   const h2 = height / 2;
   const { floor, ceil, random, round, cos, sin, min, hypot, abs, atan2, PI } =
