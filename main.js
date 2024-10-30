@@ -471,7 +471,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @typedef Upgrade
    * @property {string} name
    * @property {string | (() => string)} description
-   * @property {number} weight
    * @property {UpgradeApply} apply
    * @property {number} maxCount
    * @property {UpgradeCondition} [condition]
@@ -539,7 +538,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
         return desc;
       },
-      weight: 1,
       apply: (player) => {
         const existing = player.weapons.find((w) => w.type === weapon);
         if (existing) {
@@ -557,21 +555,18 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     {
       name: "Speed boost",
       description: "+25% speed",
-      weight: 1,
       apply: multiplyAttr("speed", 1.25),
       maxCount: 5,
     },
     {
       name: "Speed base",
       description: "+1 base speed",
-      weight: 1,
       apply: baseAttr("speed", 1),
       maxCount: 5,
     },
     {
       name: "Heal",
       description: "+25 health",
-      weight: 1,
       condition: (player) => player.health + 25 < player.attrs.health.value,
       apply: (player) => (player.health += 25),
       maxCount: 5,
@@ -579,7 +574,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     {
       name: "Max health",
       description: "+25 max health, +5 health",
-      weight: 1,
       apply: (player) => {
         player.attrs.health.push("base", (_, value) => value + 25);
         player.health += 5;
@@ -589,42 +583,36 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     {
       name: "Health drop",
       description: "+1% health drop chance",
-      weight: 1,
       apply: baseAttr("healthDrop", 0.01),
       maxCount: 5,
     },
     {
       name: "Regen",
       description: "+0.1/s health regen",
-      weight: 1,
       apply: baseAttr("healthRegen", 0.1),
       maxCount: 5,
     },
     {
       name: "Regen boost",
       description: "+10% health regen",
-      weight: 1,
       apply: multiplyAttr("healthRegen", 1.1),
       maxCount: 5,
     },
     {
       name: "Pickup range",
       description: "+10 pickup range",
-      weight: 1,
       apply: baseAttr("pickupDistance", 10),
       maxCount: 5,
     },
     {
       name: "Damage",
       description: "+1 damage",
-      weight: 1,
       apply: baseAttr("damage", 1),
       maxCount: 5,
     },
     {
       name: "Attack speed",
       description: "+5% attack speed",
-      weight: 1,
       apply: baseAttr("attackSpeed", -0.05),
       maxCount: 5,
     },
@@ -777,9 +765,18 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     ...startingManagerState,
   };
 
+  /**
+   * @template T
+   * @template {keyof T} K
+   * @typedef {Partial<Pick<T, K>> & Omit<T, K>} WithOptional<T, K>
+   */
+
   /** @typedef {{ health: number; speed: number; damage: number; damageTick: number; experience: number; boss?: boolean; pushBackResistance?: number; size: number; render: (x: number, y: number, hit: string | undefined) => void}} EnemyType */
-  /** @param {EnemyType} type */
-  const defineEnemy = (type) => type;
+  /**
+   * @param {WithOptional<EnemyType, 'damageTick' |'size'>} type
+   * @returns {EnemyType}
+   */
+  const defineEnemy = (type) => ({ ...type, damageTick: 1, size: 10 });
 
   /**
    * @param {string[]} colors
@@ -809,9 +806,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     health: 10,
     speed: 26,
     damage: 1,
-    damageTick: 1,
     experience: 1,
-    size: 10,
     render: boxSprite(["#aaa"], 10),
   });
 
@@ -819,9 +814,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     health: 50,
     speed: 26,
     damage: 1,
-    damageTick: 1,
     experience: 2,
-    size: 10,
     render: boxSprite(["#aaa", "#faa"], 10),
   });
 
@@ -829,9 +822,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     health: 100,
     speed: 30,
     damage: 2,
-    damageTick: 1,
     experience: 3,
-    size: 10,
     render: boxSprite(["#aaa", "#faa", "#4a4"], 10),
   });
 
@@ -839,7 +830,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     health: 500,
     speed: 30,
     damage: 10,
-    damageTick: 1,
     experience: 20,
     size: 20,
     render: boxSprite(["#faa"], 20),
@@ -850,9 +840,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     health: 20,
     speed: 35,
     damage: 2,
-    damageTick: 1,
     experience: 2,
-    size: 10,
     render: triangleSprite(["#999"], 10),
   });
 
@@ -860,9 +848,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     health: 40,
     speed: 35,
     damage: 2,
-    damageTick: 1,
     experience: 3,
-    size: 10,
     render: triangleSprite(["#999", "#0ac"], 10),
   });
 
@@ -870,9 +856,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     health: 60,
     speed: 35,
     damage: 3,
-    damageTick: 1,
     experience: 4,
-    size: 10,
     render: triangleSprite(["#999", "#0ac", "#966"], 10),
   });
 
@@ -880,7 +864,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     health: 1000,
     speed: 35,
     damage: 10,
-    damageTick: 1,
     experience: 50,
     boss: true,
     pushBackResistance: 80,
@@ -892,9 +875,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     health: 10,
     speed: 40,
     damage: 1,
-    damageTick: 1,
     experience: 3,
-    size: 10,
     render: circleSprite(["#999"], 5),
   });
 
@@ -902,9 +883,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     health: 20,
     speed: 40,
     damage: 1,
-    damageTick: 1,
     experience: 4,
-    size: 10,
     render: circleSprite(["#999", "#0ac"], 5),
   });
 
@@ -912,9 +891,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     health: 50,
     speed: 40,
     damage: 1,
-    damageTick: 1,
     experience: 5,
-    size: 10,
     render: circleSprite(["#999", "#0ac", "#4ca"], 5),
   });
 
@@ -922,7 +899,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     health: 1000,
     speed: 40,
     damage: 5,
-    damageTick: 1,
     experience: 4,
     boss: true,
     pushBackResistance: 80,
@@ -934,12 +910,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     health: 10000,
     speed: 55,
     damage: 5,
-    damageTick: 1,
     experience: 0,
     boss: true,
     pushBackResistance: 1000,
     size: 50,
-    render: (x, y, hit) => {
+    render(x, y, hit) {
       draw.circle(x, y, 25, hit ?? "#faa");
       draw.box(x, y, 25, hit ?? "#0ac");
       draw.triangle(x, y, 23, hit ?? "#faa");
