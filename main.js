@@ -147,6 +147,9 @@ function renderPickups() {
 }
 
 function renderUI() {
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+
   ctx.fillStyle = "#600";
   ctx.fillRect(0, 0, width, 20);
   ctx.fillStyle = "#f66";
