@@ -1,10 +1,5 @@
 // @ts-check
 function microSurvivors(target = document.body, width = 400, height = 400) {
-  /*
-  TODO:
-   - touch controls support?
-*/
-
   // #region Constants
   const font = "monospace";
   const help = ["WASD to move", "Mouse to aim", "Survive", "Kill end boss"];
