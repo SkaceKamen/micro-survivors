@@ -32,7 +32,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const left = "left";
   const right = "right";
   const middle = "middle";
-  const listen = "addEventListener";
+  const addEventListener = "addEventListener";
+  const white = "#fff";
+  const gray = "#aaa";
+  const enemyStage2Color = "#faa";
+  const enemyStage3Color = "#0ac";
   // #endregion
 
   // #region Utility functions
@@ -196,8 +200,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     }
 
     for (const [name, value] of table) {
-      draw.text(x, y, `${name}:`, "#aaa");
-      draw.text(x + rowWidth - 5, y, `${value}`, "#fff", right);
+      draw.text(x, y, `${name}:`, gray);
+      draw.text(x + rowWidth - 5, y, `${value}`, white, right);
 
       y += rowHeight;
 
@@ -276,10 +280,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       justPressedInput[mapped] = state;
     }
   };
-  document[listen]("keydown", (event) => processKeyEvent(event, true));
-  document[listen]("keyup", (event) => processKeyEvent(event, false));
 
-  canvas[listen]("mousemove", (event) => {
+  const listen = document[addEventListener];
+
+  listen("keydown", (event) => processKeyEvent(event, true));
+  listen("keyup", (event) => processKeyEvent(event, false));
+
+  canvas[addEventListener]("mousemove", (event) => {
     const rect = canvas.getBoundingClientRect();
     input.targetX = event.clientX - rect.left;
     input.targetY = event.clientY - rect.top;
@@ -381,7 +388,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         const bladeX = player.x + cos(angle) * attrs.area;
         const bladeY = player.y + sin(angle) * attrs.area;
 
-        draw.circle(bladeX, bladeY, attrs.size / 2, "#fff");
+        draw.circle(bladeX, bladeY, attrs.size / 2, white);
       }
     },
     stats: (_, attrs, attrs1) => [
@@ -907,7 +914,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     spd: 26,
     damage: 10,
     experience: 1,
-    render: boxSprite(["#aaa"], 10),
+    render: boxSprite([gray], 10),
   });
 
   const boxLevel2 = defineEnemy({
@@ -915,7 +922,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     spd: 26,
     damage: 15,
     experience: 2,
-    render: boxSprite(["#aaa", "#faa"], 10),
+    render: boxSprite([gray, enemyStage2Color], 10),
   });
 
   const boxLevel3 = defineEnemy({
@@ -923,7 +930,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     spd: 30,
     damage: 20,
     experience: 3,
-    render: boxSprite(["#aaa", "#faa", "#4a4"], 10),
+    render: boxSprite([gray, enemyStage2Color, "#4a4"], 10),
   });
 
   const boxBoss = defineEnemy({
@@ -932,7 +939,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     damage: 20,
     experience: 100,
     size: 20,
-    render: boxSprite(["#faa"], 20),
+    render: boxSprite([enemyStage2Color], 20),
     boss: true,
   });
 
@@ -949,7 +956,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     spd: 35,
     damage: 20,
     experience: 3,
-    render: triangleSprite(["#999", "#0ac"], 10),
+    render: triangleSprite(["#999", enemyStage3Color], 10),
   });
 
   const triangleLevel3 = defineEnemy({
@@ -957,7 +964,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     spd: 35,
     damage: 30,
     experience: 4,
-    render: triangleSprite(["#999", "#0ac", "#966"], 10),
+    render: triangleSprite(["#999", enemyStage3Color, "#966"], 10),
   });
 
   const triangleBoss = defineEnemy({
@@ -968,7 +975,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     boss: true,
     pushBackResistance: 80,
     size: 20,
-    render: triangleSprite(["#faa"], 20),
+    render: triangleSprite([enemyStage2Color], 20),
   });
 
   const circleLevel1 = defineEnemy({
@@ -984,7 +991,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     spd: 40,
     damage: 10,
     experience: 4,
-    render: circleSprite(["#999", "#0ac"], 5),
+    render: circleSprite(["#999", enemyStage3Color], 5),
   });
 
   const circleLevel3 = defineEnemy({
@@ -992,7 +999,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     spd: 40,
     damage: 20,
     experience: 5,
-    render: circleSprite(["#999", "#0ac", "#4ca"], 5),
+    render: circleSprite(["#999", enemyStage3Color, "#4ca"], 5),
   });
 
   const circleBoss = defineEnemy({
@@ -1003,7 +1010,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     boss: true,
     pushBackResistance: 80,
     size: 16,
-    render: circleSprite(["#faa"], 8),
+    render: circleSprite([enemyStage2Color], 8),
   });
 
   const finalBoss = defineEnemy({
@@ -1015,9 +1022,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     pushBackResistance: 1000,
     size: 50,
     render(x, y, hit) {
-      draw.circle(x, y, 25, hit ?? "#faa");
-      draw.box(x, y, 25, hit ?? "#0ac");
-      draw.triangle(x, y, 23, hit ?? "#faa");
+      draw.circle(x, y, 25, hit ?? enemyStage2Color);
+      draw.box(x, y, 25, hit ?? enemyStage3Color);
+      draw.triangle(x, y, 23, hit ?? enemyStage2Color);
     },
   });
 
@@ -1207,13 +1214,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       weapon.typ.render(weapon, weapon.typ.levels[weapon.lvl]);
     }
 
-    draw.rect(player.x - 5, player.y - 5, 10, 10, "#fff");
+    draw.rect(player.x - 5, player.y - 5, 10, 10, white);
   };
 
   const renderEnemies = () => {
     for (const enemy of enemies) {
       const type = enemy.type;
-      type.render(enemy.x, enemy.y, enemy.hitTick > 0 ? "#fff" : undefined);
+      type.render(enemy.x, enemy.y, enemy.hitTick > 0 ? white : undefined);
 
       if (type.boss) {
         draw.rect(enemy.x - 20, enemy.y + 15, 40, 3, "#333");
@@ -1289,7 +1296,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
     for (const stat of stats) {
       draw.text(x + w / 2 - 5, y, stat[0], "#ccc", right);
-      draw.text(x + w / 2 + 5, y, stat[1], "#fff", left);
+      draw.text(x + w / 2 + 5, y, stat[1], white, left);
       y += 15;
     }
 
@@ -1310,7 +1317,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       50 + 2,
       10,
       floor(player.health) + "/" + floor(player.attrs.health.val),
-      "#fff",
+      white,
       left,
       middle,
     );
@@ -1321,7 +1328,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       20,
       (player.experience / player.nextLevelExperience) * (width - 50),
       12,
-      "#fff",
+      white,
     );
 
     draw.text(
@@ -1335,14 +1342,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
     draw.rect(0, 0, 50, 32, "#000");
     draw.text(25, 2, "level", "#666", center, top);
-    draw.text(25, 18, `${player.lvl + 1}`, "#fff", center, top);
+    draw.text(25, 18, `${player.lvl + 1}`, white, center, top);
 
-    draw.text(w2, 35, formatTime(manager.runtime), "#fff", center);
+    draw.text(w2, 35, formatTime(manager.runtime), white, center);
 
     if (manager.runtime < 20) {
       let y = height - 30 - help.length * 15;
       for (const text of help) {
-        draw.text(10, y, text, "#fff", left, top);
+        draw.text(10, y, text, white, left, top);
         y += 15;
       }
     }
@@ -1364,13 +1371,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         y = renderSurvivalStatsUi(50, y, width - 100);
         y += 30;
 
-        draw.text(w2, y, pressEnterToRestart, "#fff", center);
+        draw.text(w2, y, pressEnterToRestart, white, center);
         break;
       }
 
       case MANAGER_STATES.PICKING_UPGRADE: {
         draw.overlay();
-        draw.text(w2, 10, "LEVEL UP", "#fff", center, top);
+        draw.text(w2, 10, "LEVEL UP", white, center, top);
 
         for (let i = 0; i < manager.upgrades.length; i++) {
           const upgrade = manager.upgrades[i];
@@ -1399,7 +1406,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
             true,
           );
 
-          draw.text(x + 5, y + 5, upgrade.nam, "#fff");
+          draw.text(x + 5, y + 5, upgrade.nam, white);
           draw.text(
             x + 5,
             y + 22,
@@ -1423,33 +1430,33 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       case MANAGER_STATES.PAUSED: {
         draw.overlay();
-        draw.text(w2, 40, "PAUSED", "#fff", center, middle);
+        draw.text(w2, 40, "PAUSED", white, center, middle);
         renderPlayerStatsUi(20, 80, width - 40);
         break;
       }
 
       case MANAGER_STATES.WIN: {
         draw.overlay();
-        draw.text(w2, 100, "YOU WON", "#fff", center, middle);
+        draw.text(w2, 100, "YOU WON", white, center, middle);
 
         let y = 130;
         y = renderSurvivalStatsUi(100, y, width - 200);
         y += 30;
 
-        draw.text(w2, y, pressEnterToRestart, "#fff", center);
+        draw.text(w2, y, pressEnterToRestart, white, center);
         break;
       }
 
       case MANAGER_STATES.START: {
         draw.overlay();
-        draw.text(w2, h2 - 40, "MICRO", "#fff", center, "bottom", 68);
-        draw.text(w2, h2 - 40, "SURVIVORS", "#fff", center, top, 38);
+        draw.text(w2, h2 - 40, "MICRO", white, center, "bottom", 68);
+        draw.text(w2, h2 - 40, "SURVIVORS", white, center, top, 38);
         draw.text(w2, height - 5, "by Kamen", "#ccc", center, "bottom", 10);
 
         ctx.globalAlpha =
           0.5 + (cos((performance.now() / 1000) * 5) * 0.5 + 0.5) * 0.5;
 
-        draw.text(w2, h2 + 50, pressEnterToStart, "#fff", center);
+        draw.text(w2, h2 + 50, pressEnterToStart, white, center);
 
         ctx.globalAlpha = 1;
 
@@ -1464,7 +1471,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     if (d > 0) {
       const damageOverlayGradient = screenGradient(
         80,
-        "#ff000000",
+        "#f000",
         `rgba(255,0,0,${d})`,
       );
 
@@ -1475,7 +1482,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     if (p > 0) {
       const pickupOverlayGradient = screenGradient(
         130,
-        "#ffffff00",
+        "#fff0",
         `rgba(255,255,255,${p * 0.15})`,
       );
 
