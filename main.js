@@ -227,12 +227,12 @@ const WEAPON_TYPES = {
 /**
  * @typedef SawBladesWeapon
  * @property {typeof WEAPON_TYPES.SAW_BLADES} type
- * @property {number} damage
- * @property {number} range
- * @property {number} rotationSpeed
- * @property {number} damageRate
- * @property {number} blades
- * @property {number} size
+ * @property {(level: number) => number} damage
+ * @property {(level: number) => number} range
+ * @property {(level: number) => number} rotationSpeed
+ * @property {(level: number) => number} damageRate
+ * @property {(level: number) => number} blades
+ * @property {(level: number) => number} size
  */
 
 /**
@@ -242,12 +242,12 @@ const WEAPON_TYPES = {
 /** @type {SawBladesWeapon} */
 const sawBlades = {
   type: WEAPON_TYPES.SAW_BLADES,
-  damage: 1,
-  range: 50,
-  rotationSpeed: Math.PI / 2,
-  damageRate: 0.1,
-  blades: 2,
-  size: 10,
+  damage: (level) => 1 + level,
+  range: () => 50,
+  rotationSpeed: (level) => Math.PI / 2 + level * 0.1,
+  damageRate: () => 0.1,
+  blades: (level) => 2 + Math.floor(level * 0.5),
+  size: () => 10,
 };
 
 /**
@@ -257,6 +257,7 @@ const initializeWeapon = (type) => ({
   type,
   tick: 0,
   damageTick: 0,
+  level: 0,
 });
 
 /** @typedef {ReturnType<typeof initializeWeapon>} Weapon */
@@ -408,6 +409,26 @@ const upgrades = [
     apply: baseAttr("pickupDistance", 10),
     maxCount: 5,
   },
+  {
+    name: "Saw Blades",
+    description: "Spinning disks around player",
+    weight: 1,
+    apply: (player) => player.weapons.push(initializeWeapon(sawBlades)),
+    maxCount: 1,
+  },
+  {
+    name: "Saw Blades +1 level",
+    description: "Spinning disks around player",
+    weight: 1,
+    apply: (player) => {
+      const existing = player.weapons.find((w) => w.type === sawBlades);
+      if (existing) {
+        existing.level++;
+      }
+    },
+    condition: (player) => player.weapons.some((w) => w.type === sawBlades),
+    maxCount: 5,
+  },
 ];
 
 /** @typedef {(player: any, value: number, attribute: string) => number} AttributeEnhancer */
@@ -515,7 +536,7 @@ const createPlayer = (type = 0) => ({
 
   // Weapons
   /** @type {Weapon[]} */
-  weapons: [initializeWeapon(sawBlades)],
+  weapons: [],
 });
 
 /** @typedef {ReturnType<typeof createPlayer>} Player */
@@ -815,15 +836,15 @@ function renderPlayer() {
       case WEAPON_TYPES.SAW_BLADES: {
         const data = weapon.type;
 
-        const anglePerBlade = (Math.PI * 2) / data.blades;
-        const baseAngle = weapon.tick * data.rotationSpeed;
+        const anglePerBlade = (Math.PI * 2) / data.blades(weapon.level);
+        const baseAngle = weapon.tick * data.rotationSpeed(weapon.level);
 
-        for (let i = 0; i < data.blades; i++) {
+        for (let i = 0; i < data.blades(weapon.level); i++) {
           const angle = baseAngle + anglePerBlade * i;
-          const bladeX = player.x + Math.cos(angle) * data.range;
-          const bladeY = player.y + Math.sin(angle) * data.range;
+          const bladeX = player.x + Math.cos(angle) * data.range(weapon.level);
+          const bladeY = player.y + Math.sin(angle) * data.range(weapon.level);
 
-          draw.circle(bladeX, bladeY, data.size / 2, "#fff");
+          draw.circle(bladeX, bladeY, data.size(weapon.level) / 2, "#fff");
         }
       }
     }
@@ -1390,28 +1411,30 @@ function playerTick(deltaTime) {
         const data = weapon.type;
 
         if (weapon.damageTick <= 0) {
-          weapon.damageTick = data.damageRate;
+          weapon.damageTick = data.damageRate(weapon.level);
 
-          const anglePerBlade = (Math.PI * 2) / data.blades;
-          const baseAngle = weapon.tick * data.rotationSpeed;
+          const anglePerBlade = (Math.PI * 2) / data.blades(weapon.level);
+          const baseAngle = weapon.tick * data.rotationSpeed(weapon.level);
 
-          for (let i = 0; i < data.blades; i++) {
+          for (let i = 0; i < data.blades(weapon.level); i++) {
             const angle = baseAngle + anglePerBlade * i;
-            const bladeX = player.x + Math.cos(angle) * data.range;
-            const bladeY = player.y + Math.sin(angle) * data.range;
+            const bladeX =
+              player.x + Math.cos(angle) * data.range(weapon.level);
+            const bladeY =
+              player.y + Math.sin(angle) * data.range(weapon.level);
 
             for (const enemy of enemies) {
               const dx = enemy.x - bladeX;
               const dy = enemy.y - bladeY;
               const distance = Math.sqrt(dx * dx + dy * dy);
 
-              if (distance < data.size / 2 + 5) {
-                enemy.health -= data.damage;
+              if (distance < data.size(weapon.level) / 2 + 5) {
+                enemy.health -= data.damage(weapon.level);
                 enemy.hitTick = 0.1;
-                enemy.pushBackX = Math.cos(angle) * 5;
-                enemy.pushBackY = Math.sin(angle) * 5;
+                enemy.pushBackX = Math.cos(angle) * 20;
+                enemy.pushBackY = Math.sin(angle) * 20;
 
-                manager.damageDone += data.damage;
+                manager.damageDone += data.damage(weapon.level);
               }
             }
           }
