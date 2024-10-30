@@ -7,27 +7,23 @@ canvas.height = height;
 
 const ctx = canvas.getContext("2d");
 
+const inputMapping = {
+  ArrowUp: "up",
+  ArrowDown: "down",
+  ArrowLeft: "left",
+  ArrowRight: "right",
+  Enter: "enter",
+};
+
 /**
  * @param {KeyboardEvent} event
  * @param {boolean} state
  */
 const processKeyEvent = (event, state) => {
-  switch (event.key) {
-    case "ArrowUp":
-      input.up = state;
-      break;
-    case "ArrowDown":
-      input.down = state;
-      break;
-    case "ArrowLeft":
-      input.left = state;
-      break;
-    case "ArrowRight":
-      input.right = state;
-      break;
-    case "Enter":
-      input.enter = state;
-      break;
+  const mapped = inputMapping[event.key];
+  if (mapped) {
+    input[mapped] = state;
+    justPressedInput[mapped] = state;
   }
 };
 
@@ -51,6 +47,85 @@ const playerTypes = [
   },
 ];
 
+const hasMelee = (player) => player.attrs.meleeDamage.value > 0;
+const baseAttr = (attr, change) => (player) =>
+  player.attrs[attr].push("base", (_, value) => value + change);
+const multiplyAttr = (attr, change) => (player) =>
+  player.attrs[attr].push("multiplier", (_, value) => value * change);
+
+const upgrades = [
+  {
+    name: "Speed boost",
+    description: "+5% speed",
+    weight: 1,
+    apply: multiplyAttr("speed", 1.05),
+  },
+  {
+    name: "Speed base",
+    description: "+0.5 base speed",
+    weight: 1,
+    apply: baseAttr("speed", 0.5),
+  },
+  {
+    name: "Heal",
+    description: "+25 health",
+    weight: 1,
+    condition: (player) => player.health < player.attrs.health.value,
+    apply: (player) => (player.health += 25),
+  },
+  {
+    name: "Max health",
+    description: "+25 max health, +5 health",
+    weight: 1,
+    apply: (player) => {
+      player.attrs.health.push("base", (_, value) => value + 25);
+      player.health += 5;
+    },
+  },
+  {
+    name: "Melee damage",
+    description: "+5 base melee damage",
+    weight: 1,
+    apply: baseAttr("meleeDamage", 5),
+    condition: hasMelee,
+  },
+  {
+    name: "Melee damage boost",
+    description: "+25% melee damage",
+    weight: 1,
+    apply: multiplyAttr("meleeDamage", 1.25),
+    condition: hasMelee,
+  },
+  {
+    name: "Melee range",
+    description: "+10 melee range",
+    weight: 1,
+    apply: baseAttr("meleeDistance", 10),
+    condition: hasMelee,
+  },
+  {
+    name: "Melee range boost",
+    description: "+15% melee range",
+    weight: 1,
+    apply: multiplyAttr("meleeDistance", 1.15),
+    condition: hasMelee,
+  },
+  {
+    name: "Melee wider cone",
+    description: "+10% melee cone width",
+    weight: 1,
+    apply: multiplyAttr("meleeAngle", 1.1),
+    condition: hasMelee,
+  },
+  {
+    name: "Melee attack speed",
+    description: "+25% melee attack speed",
+    weight: 1,
+    apply: multiplyAttr("meleeTimeout", 0.75),
+    condition: hasMelee,
+  },
+];
+
 /**
  * @param {string} attribute
  * @param {any[]} [base]
@@ -62,7 +137,7 @@ const createAttribute = (attribute, base = [], multiplier = []) => ({
    * @param {'base' | 'multiplier'} type
    * @param {(player, value, attribute) => number} fn
    */
-  push: (type, fn) => {
+  push(type, fn) {
     this[type] = [...this[type], fn];
   },
 
@@ -143,26 +218,78 @@ const input = {
   targetY: 0,
 };
 
+const justPressedInput = {
+  up: false,
+  down: false,
+  left: false,
+  right: false,
+  enter: false,
+};
+
 const MANAGER_STATES = {
   RUNNING: 0,
   DEAD: 1,
+  PICKING_UPGRADE: 2,
 };
 
 const manager = {
   state: MANAGER_STATES.RUNNING,
+  lastSpawnRate: 0,
   runtime: 0,
   spawnTimeout: 0,
+  upgrades: [],
+  selectedUpgradeIndex: 0,
+};
+
+const draw = {
+  box(x, y, size, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x - size / 2, y - size / 2, size, size);
+  },
+  triangle(x, y, size, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x, y - size / 2);
+    ctx.lineTo(x - size / 2, y + size / 2);
+    ctx.lineTo(x + size / 2, y + size / 2);
+    ctx.fill();
+  },
 };
 
 /** @typedef {{ health: number; speed: number; damage: number; damageTick: number; }} EnemyType */
 /** @type {EnemyType[]} */
 const enemyTypes = [
+  // Base square enemy
   {
     health: 10,
     speed: 20,
     damage: 1,
     damageTick: 1,
+    render: (x, y, hit) => draw.box(x, y, 10, hit ? "#fff" : "#aaa"),
   },
+  // Triangles
+  {
+    health: 20,
+    speed: 21,
+    damage: 2,
+    damageTick: 1,
+    render: (x, y, hit) => draw.triangle(x, y, 10, hit ? "#fff" : "#999"),
+  },
+  // Square boss
+  {
+    health: 500,
+    speed: 20,
+    damage: 10,
+    damageTick: 1,
+    render: (x, y) => draw.box(x, y, 20, hit ? "#fff" : "#faa"),
+  },
+];
+
+const spawnRates = [
+  { from: 0, type: 0, rate: 1 },
+  { from: 5, type: 1, rate: 1 },
+  { from: 40, type: 0, rate: 0.5 },
+  { from: 60, type: 1, rate: 0.5, boss: 2 },
 ];
 
 /** @typedef {{ x: number; y: number; type: number; health: number; hitTick: number; damageTick: number; }} Enemy */
@@ -212,8 +339,8 @@ function renderPlayer() {
 
 function renderEnemies() {
   for (const enemy of enemies) {
-    ctx.fillStyle = enemy.hitTick > 0 ? "#fff" : "#aaa";
-    ctx.fillRect(enemy.x - 5, enemy.y - 5, 10, 10);
+    const type = enemyTypes[enemy.type];
+    type.render(enemy.x, enemy.y, enemy.hitTick > 0);
   }
 }
 
@@ -252,6 +379,34 @@ function renderUI() {
     ctx.fillRect(0, 0, width, height);
     ctx.fillStyle = "#f66";
     ctx.fillText("You're dead!", width / 2 - 20, height / 2);
+  }
+
+  if (manager.state === MANAGER_STATES.PICKING_UPGRADE) {
+    ctx.fillStyle = "rgba(0, 0, 0, 0, 0.2)";
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = "#fff";
+    ctx.textBaseline = "top";
+    ctx.textAlign = "center";
+    ctx.fillText("LEVEL UP", width / 2, 10);
+
+    ctx.textAlign = "left";
+    for (let i = 0; i < manager.upgrades.length; i++) {
+      const upgrade = manager.upgrades[i];
+      const x = 20;
+      const y = 50 + i * 50;
+
+      ctx.fillStyle = i === manager.selectedUpgradeIndex ? "#333" : "#222";
+      ctx.fillRect(x, y, width - 40, 40);
+
+      ctx.strokeStyle = i === manager.selectedUpgradeIndex ? "#aa3" : "#444";
+      ctx.strokeRect(x, y, width - 40, 40);
+
+      ctx.fillStyle = "#fff";
+      ctx.fillText(upgrade.name, x + 5, y + 5);
+
+      ctx.fillStyle = "#ccc";
+      ctx.fillText(upgrade.description, x + 5, y + 22);
+    }
   }
 }
 
@@ -302,7 +457,12 @@ function gameLogicTick(deltaTime) {
     case MANAGER_STATES.DEAD:
       managerTick(deltaTime);
       break;
+    case MANAGER_STATES.PICKING_UPGRADE:
+      managerTick(deltaTime);
+      break;
   }
+
+  inputTick();
 }
 
 function enemiesTick(deltaTime) {
@@ -361,43 +521,57 @@ function enemiesTick(deltaTime) {
   }
 }
 
+function spawnEnemy(type) {
+  const angle = Math.random() * Math.PI * 2;
+  const distance = Math.max(width, height) / 2 + Math.random() * 100;
+
+  enemies.push({
+    x: player.x + Math.cos(angle) * distance,
+    y: player.y + Math.sin(angle) * distance,
+    type: type,
+    health: enemyTypes[type].health,
+    damageTick: 0,
+  });
+}
+
 function managerTick(deltaTime) {
   switch (manager.state) {
     case MANAGER_STATES.RUNNING: {
       manager.runtime += deltaTime;
-      manager.spawnTimeout += deltaTime;
 
       if (player.health <= 0) {
         manager.state = MANAGER_STATES.DEAD;
         break;
       }
 
-      // Gradually increase spawn rate
-      const spawnRate = Math.max(0.01, 2 - manager.runtime / 60);
+      const spawnRateIndex =
+        spawnRates.findIndex((rate) => rate.from > manager.runtime) - 1;
+      const spawnRate = spawnRates[spawnRateIndex];
 
-      if (manager.spawnTimeout > spawnRate) {
-        const angle = Math.random() * Math.PI * 2;
-        const distance = Math.max(width, height) / 2 + Math.random() * 100;
+      if (spawnRateIndex !== manager.lastSpawnRate) {
+        manager.lastSpawnRate = spawnRateIndex;
 
-        enemies.push({
-          x: player.x + Math.cos(angle) * distance,
-          y: player.y + Math.sin(angle) * distance,
-          type: 0,
-          health: 10,
-          damageTick: 0,
-        });
+        if (spawnRate.boss) {
+          spawnEnemy(spawnRate.boss);
+        }
+      }
 
+      if (manager.spawnTimeout > spawnRate.rate) {
+        spawnEnemy(spawnRate.type);
         manager.spawnTimeout = 0;
+      } else {
+        manager.spawnTimeout += deltaTime;
       }
 
       break;
     }
+
     case MANAGER_STATES.DEAD:
       if (input.enter) {
         player = createPlayer();
 
         manager.runtime = 0;
-        manager.spawnTimeout = 0;
+        manager.spawnTimeouts = 0;
         manager.state = MANAGER_STATES.RUNNING;
 
         enemies.length = 0;
@@ -405,6 +579,32 @@ function managerTick(deltaTime) {
       }
 
       break;
+
+    case MANAGER_STATES.PICKING_UPGRADE:
+      if (justPressedInput.up && manager.selectedUpgradeIndex > 0) {
+        manager.selectedUpgradeIndex--;
+      }
+
+      if (
+        justPressedInput.down &&
+        manager.selectedUpgradeIndex < manager.upgrades.length - 1
+      ) {
+        manager.selectedUpgradeIndex++;
+      }
+
+      if (justPressedInput.enter) {
+        const upgrade = manager.upgrades[manager.selectedUpgradeIndex];
+        upgrade.apply(player);
+        manager.state = MANAGER_STATES.RUNNING;
+      }
+
+      break;
+  }
+}
+
+function inputTick() {
+  for (const key in justPressedInput) {
+    justPressedInput[key] = false;
   }
 }
 
@@ -444,14 +644,21 @@ function playerTick(deltaTime) {
   if (player.meleeTick > 0) {
     player.meleeTick -= deltaTime;
   } else {
-    applyPlayerConeAttack(deltaTime);
+    applyPlayerMeleeAttack(deltaTime);
     player.meleeTick = player.attrs.meleeTimeout.value;
   }
 
-  if (player.experience > player.nextLevelExperience) {
+  if (player.experience >= player.nextLevelExperience) {
     player.level += 1;
     player.experience -= player.nextLevelExperience;
     player.nextLevelExperience += 50;
+
+    manager.state = MANAGER_STATES.PICKING_UPGRADE;
+    // TODO: Weights
+    manager.upgrades = upgrades
+      .slice()
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 3);
 
     player.health += 5;
   }
@@ -498,7 +705,7 @@ function pickupsTick(deltaTime) {
   }
 }
 
-function applyPlayerConeAttack(deltaTime) {
+function applyPlayerMeleeAttack(deltaTime) {
   const coneA2 = player.attrs.meleeAngle.value / 2;
   const coneStart = player.meleeDirection - coneA2;
   const coneEnd = player.meleeDirection + coneA2;
