@@ -269,8 +269,9 @@ function microSurvivors(target = document.body) {
   document.addEventListener("keyup", (event) => processKeyEvent(event, false));
 
   canvas.addEventListener("mousemove", (event) => {
-    input.targetX = event.clientX;
-    input.targetY = event.clientY;
+    const rect = canvas.getBoundingClientRect();
+    input.targetX = event.clientX - rect.left;
+    input.targetY = event.clientY - rect.top;
   });
 
   const WEAPON_TYPES = {
@@ -1078,8 +1079,8 @@ function microSurvivors(target = document.body) {
               ? "#000"
               : "#111"
             : y % 100 === 0
-            ? "#111"
-            : "#000"
+              ? "#111"
+              : "#000",
         );
       }
     }
@@ -1120,7 +1121,7 @@ function microSurvivors(target = document.body) {
             ctx.moveTo(player.x, player.y);
             ctx.lineTo(
               player.x + Math.cos(player.meleeDirection - coneA2) * attrs.range,
-              player.y + Math.sin(player.meleeDirection - coneA2) * attrs.range
+              player.y + Math.sin(player.meleeDirection - coneA2) * attrs.range,
             );
 
             ctx.arc(
@@ -1128,7 +1129,7 @@ function microSurvivors(target = document.body) {
               player.y,
               attrs.range,
               player.meleeDirection - coneA2,
-              player.meleeDirection + coneA2
+              player.meleeDirection + coneA2,
             );
 
             ctx.lineTo(player.x, player.y);
@@ -1148,7 +1149,7 @@ function microSurvivors(target = document.body) {
             player.x,
             player.y,
             attrs.range,
-            `rgba(255,0,0,${alpha})`
+            `rgba(255,0,0,${alpha})`,
           );
 
           break;
@@ -1171,7 +1172,7 @@ function microSurvivors(target = document.body) {
           enemy.y + 15,
           (enemy.health / type.health) * 40,
           3,
-          "#f33"
+          "#f33",
         );
       }
     }
@@ -1186,8 +1187,8 @@ function microSurvivors(target = document.body) {
         (pickup.health ?? 0) > 0
           ? "#0c0"
           : (pickup.experience ?? 0) < 10
-          ? "#05f"
-          : "#ff0"
+            ? "#05f"
+            : "#ff0",
       );
     }
   }
@@ -1276,7 +1277,7 @@ function microSurvivors(target = document.body) {
       0,
       (player.health / player.attrs.health.value) * (width - 50),
       20,
-      "#f66"
+      "#f66",
     );
 
     draw.text(
@@ -1285,7 +1286,7 @@ function microSurvivors(target = document.body) {
       `${Math.floor(player.health)} / ${Math.floor(player.attrs.health.value)}`,
       "#fff",
       "left",
-      "middle"
+      "middle",
     );
 
     draw.rect(50, 20, width - 50, 12, "#999");
@@ -1294,7 +1295,7 @@ function microSurvivors(target = document.body) {
       20,
       (player.experience / player.nextLevelExperience) * (width - 50),
       12,
-      "#fff"
+      "#fff",
     );
 
     draw.text(
@@ -1303,7 +1304,7 @@ function microSurvivors(target = document.body) {
       `${player.experience} / ${player.nextLevelExperience}`,
       "#000",
       "left",
-      "middle"
+      "middle",
     );
 
     draw.rect(0, 0, 50, 32, "#000");
@@ -1349,7 +1350,7 @@ function microSurvivors(target = document.body) {
           const upgrade = manager.upgrades[i];
           // TODO: Cache this somehow?
           const alreadyApplied = player.upgrades.filter(
-            (u) => u === upgrade
+            (u) => u === upgrade,
           ).length;
 
           const x = 20;
@@ -1373,7 +1374,7 @@ function microSurvivors(target = document.body) {
               ? upgrade.description()
               : upgrade.description,
             x + 5,
-            y + 22
+            y + 22,
           );
 
           draw.text(
@@ -1382,7 +1383,7 @@ function microSurvivors(target = document.body) {
             `${alreadyApplied}/${upgrade.maxCount}`,
             "#ccc",
             "right",
-            "middle"
+            "middle",
           );
         }
 
@@ -1418,7 +1419,7 @@ function microSurvivors(target = document.body) {
           "#fff",
           "center",
           "bottom",
-          68
+          68,
         );
         draw.text(
           width / 2,
@@ -1427,7 +1428,7 @@ function microSurvivors(target = document.body) {
           "#fff",
           "center",
           "top",
-          38
+          38,
         );
         draw.text(
           width / 2,
@@ -1436,7 +1437,7 @@ function microSurvivors(target = document.body) {
           "#ccc",
           "center",
           "bottom",
-          10
+          10,
         );
 
         ctx.globalAlpha =
@@ -1447,7 +1448,7 @@ function microSurvivors(target = document.body) {
           height / 2 + 50,
           "Press ENTER to start",
           "#fff",
-          "center"
+          "center",
         );
 
         ctx.globalAlpha = 1;
@@ -1467,7 +1468,7 @@ function microSurvivors(target = document.body) {
         80,
         width / 2,
         height / 2,
-        width / 2
+        width / 2,
       );
 
       damageOverlayGradient.addColorStop(0, "rgba(255,0,0,0)");
@@ -1485,7 +1486,7 @@ function microSurvivors(target = document.body) {
         130,
         width / 2,
         height / 2,
-        width / 2
+        width / 2,
       );
 
       pickupOverlayGradient.addColorStop(0, "rgba(255,255,255,0)");
@@ -1656,8 +1657,8 @@ function microSurvivors(target = document.body) {
       initializeEnemy(
         player.x + Math.cos(angle) * distance,
         player.y + Math.sin(angle) * distance,
-        type
-      )
+        type,
+      ),
     );
   }
 
@@ -1796,7 +1797,7 @@ function microSurvivors(target = document.body) {
 
     player.meleeDirection = Math.atan2(
       input.targetY - playerAbsoluteY,
-      input.targetX - playerAbsoluteX
+      input.targetX - playerAbsoluteX,
     );
 
     if (player.experience >= player.nextLevelExperience) {
@@ -1840,7 +1841,7 @@ function microSurvivors(target = document.body) {
 
     player.health = Math.min(
       player.attrs.health.value,
-      player.health + player.attrs.healthRegen.value * deltaTime
+      player.health + player.attrs.healthRegen.value * deltaTime,
     );
 
     for (const weapon of player.weapons) {
@@ -1948,7 +1949,7 @@ function microSurvivors(target = document.body) {
           case PICKUP_TYPES.HEALTH:
             player.health = Math.min(
               player.attrs.health.value,
-              player.health + (pickup.health ?? 0)
+              player.health + (pickup.health ?? 0),
             );
             break;
           case PICKUP_TYPES.EXPERIENCE:

@@ -4,7 +4,7 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "minify": "uglify-js -m -c --mangle-props \"keep_quoted\" main.js -o main.min.js"
+    "minify": "uglifyjs -m -c --mangle-props \"keep_quoted\" main.js -o main.min.js"
   },
   "author": "Jan Zipek <jan@zipek.cz>",
   "license": "MIT",
