@@ -917,7 +917,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const boxLevel1 = defineEnemy({
     health: 10,
     speed: 26,
-    damage: 1,
+    damage: 8,
     experience: 1,
     render: boxSprite(["#aaa"], 10),
   });
@@ -925,7 +925,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const boxLevel2 = defineEnemy({
     health: 50,
     speed: 26,
-    damage: 1,
+    damage: 10,
     experience: 2,
     render: boxSprite(["#aaa", "#faa"], 10),
   });
@@ -933,7 +933,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const boxLevel3 = defineEnemy({
     health: 100,
     speed: 30,
-    damage: 2,
+    damage: 20,
     experience: 3,
     render: boxSprite(["#aaa", "#faa", "#4a4"], 10),
   });
@@ -941,7 +941,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const boxBoss = defineEnemy({
     health: 500,
     speed: 30,
-    damage: 10,
+    damage: 20,
     experience: 20,
     size: 20,
     render: boxSprite(["#faa"], 20),
@@ -951,7 +951,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const triangleLevel1 = defineEnemy({
     health: 20,
     speed: 35,
-    damage: 2,
+    damage: 10,
     experience: 2,
     render: triangleSprite(["#999"], 10),
   });
@@ -959,7 +959,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const triangleLevel2 = defineEnemy({
     health: 40,
     speed: 35,
-    damage: 2,
+    damage: 20,
     experience: 3,
     render: triangleSprite(["#999", "#0ac"], 10),
   });
@@ -967,7 +967,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const triangleLevel3 = defineEnemy({
     health: 60,
     speed: 35,
-    damage: 3,
+    damage: 30,
     experience: 4,
     render: triangleSprite(["#999", "#0ac", "#966"], 10),
   });
@@ -975,7 +975,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const triangleBoss = defineEnemy({
     health: 1000,
     speed: 35,
-    damage: 10,
+    damage: 30,
     experience: 50,
     boss: true,
     pushBackResistance: 80,
@@ -986,7 +986,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const circleLevel1 = defineEnemy({
     health: 10,
     speed: 40,
-    damage: 1,
+    damage: 8,
     experience: 3,
     render: circleSprite(["#999"], 5),
   });
@@ -994,7 +994,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const circleLevel2 = defineEnemy({
     health: 20,
     speed: 40,
-    damage: 1,
+    damage: 10,
     experience: 4,
     render: circleSprite(["#999", "#0ac"], 5),
   });
@@ -1002,7 +1002,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const circleLevel3 = defineEnemy({
     health: 50,
     speed: 40,
-    damage: 1,
+    damage: 20,
     experience: 5,
     render: circleSprite(["#999", "#0ac", "#4ca"], 5),
   });
@@ -1010,7 +1010,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const circleBoss = defineEnemy({
     health: 1000,
     speed: 40,
-    damage: 5,
+    damage: 20,
     experience: 4,
     boss: true,
     pushBackResistance: 80,
@@ -1021,7 +1021,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const finalBoss = defineEnemy({
     health: 10000,
     speed: 55,
-    damage: 5,
+    damage: 50,
     experience: 0,
     boss: true,
     pushBackResistance: 1000,
