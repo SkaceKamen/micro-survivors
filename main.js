@@ -4,15 +4,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   TODO:
    - touch controls support?
    - audio?
-   - more player types:
-    - monk
-      - base weapon: barbed wire
-      - base attributes exclude armor, higher speed
-      - focused on healing and passive damage
-      - cannot pickup melee weapons?
-    - magic man
-      - base weapon: saw blades
-      - area increases with level
 */
 
   // #region Constants
@@ -69,6 +60,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {number} [d=0]
    */
   const fNumber = (n, d = 0) => n?.toFixed(d) ?? "";
+
+  /**
+   * @param {number} n
+   */
+  const fNumber2 = (n) => fNumber(n, 2);
 
   /**
    * @param {number} x1
@@ -945,6 +941,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
     // Attribute values
     attrs: {
+      damage: createAttribute(
+        joinAttrs(typ.attrs.damage, typ.attrsWithLevel.damage),
+      ),
+      attackSpeed: createAttribute(
+        joinAttrs(typ.attrs.attackSpeed, typ.attrsWithLevel.attackSpeed),
+      ),
+      area: createAttribute(joinAttrs(typ.attrs.area, typ.attrsWithLevel.area)),
       spd: createAttribute(joinAttrs(typ.attrs.spd, typ.attrsWithLevel.spd)),
       health: createAttribute(
         joinAttrs(typ.attrs.health, typ.attrsWithLevel.health),
@@ -952,22 +955,15 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       healthRegen: createAttribute(
         joinAttrs(typ.attrs.healthRegen, typ.attrsWithLevel.healthRegen),
       ),
+      armor: createAttribute(
+        joinAttrs(typ.attrs.armor, typ.attrsWithLevel.armor),
+      ),
       pickupDistance: createAttribute(
         joinAttrs(typ.attrs.pickupDistance, typ.attrsWithLevel.pickupDistance),
-      ),
-      damage: createAttribute(
-        joinAttrs(typ.attrs.damage, typ.attrsWithLevel.damage),
-      ),
-      attackSpeed: createAttribute(
-        joinAttrs(typ.attrs.attackSpeed, typ.attrsWithLevel.attackSpeed),
       ),
       healthDrop: createAttribute(
         joinAttrs(typ.attrs.healthDrop, typ.attrsWithLevel.healthDrop),
       ),
-      armor: createAttribute(
-        joinAttrs(typ.attrs.armor, typ.attrsWithLevel.armor),
-      ),
-      area: createAttribute(joinAttrs(typ.attrs.area, typ.attrsWithLevel.area)),
     },
 
     // Already applied upgrades
@@ -1395,6 +1391,16 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     pickupDistance: "Pickup Distance",
   };
 
+  /** @type {Partial<Record<keyof typeof statLabel, ((v: number) => string | number)>>} */
+  const statFormat = {
+    attackSpeed: (v) => fNumber2(2 - v),
+    health: floor,
+    area: fNumber2,
+    spd: fNumber2,
+    healthRegen: (v) => fNumber2(v) + "/s",
+    healthDrop: (v) => fNumber(v * 100) + "%",
+  };
+
   /**
    * @param {string} value
    */
@@ -1405,17 +1411,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {boolean} [includePerLevel]
    */
   const getPlayerStats = (player, includePerLevel) => {
-    const stats = [
-      [statLabel.damage, fNumber(player.attrs.damage.val)],
-      [statLabel.attackSpeed, fNumber(2 - player.attrs.attackSpeed.val, 2)],
-      [statLabel.area, fNumber(player.attrs.area.val, 2)],
-      [statLabel.health, floor(player.attrs.health.val)],
-      [statLabel.healthRegen, fNumber(player.attrs.healthRegen.val, 2) + "/s"],
-      [statLabel.armor, fNumber(player.attrs.armor.val)],
-      [statLabel.spd, fNumber(player.attrs.spd.val, 2)],
-      [statLabel.healthDrop, fNumber(player.attrs.healthDrop.val * 100) + "%"],
-      [statLabel.pickupDistance, fNumber(player.attrs.pickupDistance.val)],
-    ];
+    const stats = Object.entries(player.attrs).map(([key, value]) => [
+      statLabel[key],
+      (statFormat[key] ?? fNumber)(value.val),
+    ]);
 
     const add = stats.push.bind(stats);
 
