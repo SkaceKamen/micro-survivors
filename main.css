@@ -1,4 +1,9 @@
+body, html {
+  background: #333;
+}
+
 canvas {
   background-color: #000;
   margin: auto;
+  display: block;
 }
