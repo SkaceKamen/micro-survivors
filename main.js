@@ -344,53 +344,53 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    */
 
   /**
-   * @typedef SawBladesWeaponLevel
+   * @typedef MagicOrbsWeaponLevel
    * @property {number} damage
    * @property {number} area
    * @property {number} rotationSpeed
    * @property {number} damageRate
-   * @property {number} blades
+   * @property {number} orbs
    * @property {number} radius
    */
 
   /**
-   * @typedef {WeaponTypeBase<SawBladesWeaponLevel>} SawBladesWeapon
+   * @typedef {WeaponTypeBase<MagicOrbsWeaponLevel>} MagicOrbsWeapon
    */
 
-  /** @type {SawBladesWeapon} */
-  const sawBlades = {
-    nam: "Saw Blades",
-    desc: "Spinning blades",
+  /** @type {MagicOrbsWeapon} */
+  const magicOrbs = {
+    nam: "Orbs",
+    desc: "Orbiting orbs",
     levels: fillLevels([
       {
         damage: 10,
         area: 50,
         rotationSpeed: PI / 1.5,
         damageRate: 0.1,
-        blades: 1,
+        orbs: 1,
         radius: 10,
       },
-      { blades: 2 },
+      { orbs: 2 },
       { damage: 15, rotationSpeed: PI / 1.25 },
       { rotationSpeed: PI / 1, radius: 15 },
-      { blades: 3 },
+      { orbs: 3 },
       { damage: 20 },
-      { blades: 4 },
+      { orbs: 4 },
     ]),
     tick(weapon, attrs) {
       const damage = attrs.damage + player.attrs.damage.val;
       const radius = attrs.radius * player.attrs.area.val;
       const baseAngle =
         weapon.tick * (attrs.rotationSpeed * player.attrs.attackSpeed.val);
-      const anglePerBlade = PI2 / attrs.blades;
+      const anglePerOrb = PI2 / attrs.orbs;
 
-      for (let i = 0; i < attrs.blades; i++) {
-        const angle = baseAngle + anglePerBlade * i;
-        const bladeX = player.x + cos(angle) * attrs.area;
-        const bladeY = player.y + sin(angle) * attrs.area;
+      for (let i = 0; i < attrs.orbs; i++) {
+        const angle = baseAngle + anglePerOrb * i;
+        const orbX = player.x + cos(angle) * attrs.area;
+        const orbY = player.y + sin(angle) * attrs.area;
 
         for (const enemy of enemies) {
-          const dis = distance(enemy.x, enemy.y, bladeX, bladeY);
+          const dis = distance(enemy.x, enemy.y, orbX, orbY);
 
           if (dis < radius / 2 + enemy.type.radius + 2) {
             enemy.health -= damage;
@@ -404,18 +404,18 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       }
     },
     render(weapon, attrs) {
-      const anglePerBlade = PI2 / attrs.blades;
+      const anglePerBlade = PI2 / attrs.orbs;
       const baseAngle =
         weapon.tick * (attrs.rotationSpeed * player.attrs.attackSpeed.val);
 
       const radius = attrs.radius * player.attrs.area.val;
 
-      for (let i = 0; i < attrs.blades; i++) {
+      for (let i = 0; i < attrs.orbs; i++) {
         const angle = baseAngle + anglePerBlade * i;
-        const bladeX = player.x + cos(angle) * attrs.area;
-        const bladeY = player.y + sin(angle) * attrs.area;
+        const orbX = player.x + cos(angle) * attrs.area;
+        const orbY = player.y + sin(angle) * attrs.area;
 
-        draw.circle(bladeX, bladeY, radius / 2, white);
+        draw.circle(orbX, orbY, radius / 2, white);
       }
     },
     stats: (_, attrs, attrs1) => [
@@ -426,7 +426,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         optionalStatsDiff(attrs.rotationSpeed, attrs1?.rotationSpeed),
         (s) => fAngle(s) + "/s",
       ],
-      [`blades`, optionalStatsDiff(attrs.blades, attrs1?.blades)],
+      [`count`, optionalStatsDiff(attrs.orbs, attrs1?.orbs)],
       [`size`, optionalStatsDiff(attrs.radius, attrs1?.radius)],
     ],
   };
@@ -584,7 +584,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   };
 
   /**
-   * @typedef {SawBladesWeapon | MeleeWeapon | AreaWeapon} WeaponType
+   * @typedef {MagicOrbsWeapon | MeleeWeapon | AreaWeapon} WeaponType
    */
 
   /**
@@ -661,7 +661,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     },
     {
       nam: "Magic Man",
-      weapons: [sawBlades],
+      weapons: [magicOrbs],
       attrs: {
         health: [50],
         spd: [45],
@@ -820,7 +820,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       desc: "+10% area",
       use: () => player.attrs.area.base.push(0.1),
     },
-    weaponUpgrade(sawBlades),
+    weaponUpgrade(magicOrbs),
     weaponUpgrade(sword),
     weaponUpgrade(barbedWire),
   ];
