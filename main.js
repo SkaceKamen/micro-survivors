@@ -255,6 +255,9 @@ const createPlayer = (type = 0) => ({
     meleeTimeout: createAttribute("meleeTimeout"),
     pickupDistance: createAttribute("pickupDistance"),
   },
+
+  // Already applied upgrades, index in upgrades array
+  upgrades: [],
 });
 
 let player = createPlayer();
@@ -549,12 +552,19 @@ function renderUI() {
     ctx.textAlign = "center";
     ctx.fillText("LEVEL UP", width / 2, 10);
 
-    ctx.textAlign = "left";
     for (let i = 0; i < manager.upgrades.length; i++) {
-      const upgrade = manager.upgrades[i];
+      const upgrade = manager.upgrades[i][1];
+      const upgradeIndex = manager.upgrades[i][0];
+      // TODO: Cache this somehow?
+      const alreadyApplied = player.upgrades.filter(
+        (u) => u === upgradeIndex
+      ).length;
+
       const x = 20;
       const y = 50 + i * 50;
 
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
       ctx.fillStyle = i === manager.selectedUpgradeIndex ? "#333" : "#222";
       ctx.fillRect(x, y, width - 40, 40);
 
@@ -566,6 +576,15 @@ function renderUI() {
 
       ctx.fillStyle = "#ccc";
       ctx.fillText(upgrade.description, x + 5, y + 22);
+
+      draw.text(
+        x + width - 50,
+        y + 20,
+        `${alreadyApplied}/${upgrade.maxCount}`,
+        "#ccc",
+        "right",
+        "middle"
+      );
     }
 
     renderPlayerStatsUi(100, 50 + 3 * 50 + 10, width - 200);
@@ -823,7 +842,8 @@ function managerTick(deltaTime) {
 
       if (justPressedInput.enter) {
         const upgrade = manager.upgrades[manager.selectedUpgradeIndex];
-        upgrade.apply(player);
+        upgrade[1].apply(player);
+        player.upgrades.push(upgrade[0]);
         manager.state = MANAGER_STATES.RUNNING;
       }
 
@@ -890,8 +910,27 @@ function playerTick(deltaTime) {
     player.nextLevelExperience += 10;
 
     manager.state = MANAGER_STATES.PICKING_UPGRADE;
+
+    const availableUpgrades = upgrades
+      .map((upgrade, index) => [index, upgrade])
+      .filter(([upgradeIndex, upgrade]) => {
+        if (upgrade.condition && !upgrade.condition(player)) {
+          return false;
+        }
+
+        if (
+          upgrade.maxCount &&
+          player.upgrades.filter((u) => u === upgradeIndex).length >=
+            upgrade.maxCount
+        ) {
+          return false;
+        }
+
+        return true;
+      });
+
     // TODO: Weights
-    manager.upgrades = shuffleArray(upgrades).slice(0, 3);
+    manager.upgrades = shuffleArray(Array.from(availableUpgrades)).slice(0, 3);
 
     player.health += 5;
   }
