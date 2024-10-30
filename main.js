@@ -299,58 +299,50 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   // @ts-expect-error null check doesn't provide much value here, lets just skip it
   const ctx = canvas.getContext`2d`;
 
-  /** @type {Record<string, keyof typeof justPressedInput>} */
+  /** @type {Record<string, keyof typeof input>} */
   const inputMapping = {
-    "arrowup": "up",
-    "arrowdown": "down",
-    "arrowleft": left,
-    "arrowright": right,
-    "w": "up",
-    "s": "down",
-    "a": left,
-    "d": right,
-    "enter": "enter",
-    "escape": "pause",
-    "p": "pause",
+    38: "u",
+    40: "d",
+    37: "l",
+    39: "r",
+    87: "u",
+    83: "d",
+    65: "l",
+    68: "r",
+    13: "e",
+    27: "p",
+    80: "p",
   };
 
   const input = {
-    "up": false,
-    "down": false,
-    "left": false,
-    "right": false,
-    "enter": false,
-    "pause": false,
-    "targetX": 0,
-    "targetY": 0,
-    "touched": false,
-    "touchX": 0,
-    "touchY": 0,
+    "u": false,
+    "d": false,
+    "l": false,
+    "r": false,
+    "e": false,
+    "p": false,
+    targetX: 0,
+    targetY: 0,
   };
 
-  const justPressedInput = {
-    "up": false,
-    "down": false,
-    "left": false,
-    "right": false,
-    "enter": false,
-    "pause": false,
-  };
+  /** @type {Partial<Record<keyof input, boolean>>} */
+  const justPressedInput = {};
 
   /**
-   * @param {KeyboardEvent} event
    * @param {boolean} state
+   * @returns {(event: KeyboardEvent) => void}
    */
-  const processKeyEvent = (event, state) => {
-    const mapped = inputMapping[event.key.toLowerCase()];
+  const processKeyEvent = (state) => (event) => {
+    const mapped = inputMapping[event.which];
     if (mapped) {
+      // @ts-expect-error mapped is a valid key
       input[mapped] = state;
       justPressedInput[mapped] = state;
     }
   };
 
-  onkeydown = (event) => processKeyEvent(event, true);
-  onkeyup = (event) => processKeyEvent(event, false);
+  onkeydown = processKeyEvent(true);
+  onkeyup = processKeyEvent(false);
   onmousemove = (event) => {
     const rect = canvas.getBoundingClientRect();
     input.targetX = event.clientX - rect.left;
@@ -1823,12 +1815,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   };
 
   const managerSelectionTick = () => {
-    if (justPressedInput.up && manager.selIndex > 0) {
+    if (justPressedInput.u && manager.selIndex > 0) {
       manager.selIndex--;
       zzfx(...audio.interactionClick);
     }
 
-    if (justPressedInput.down && manager.selIndex < manager.selLength) {
+    if (justPressedInput.d && manager.selIndex < manager.selLength) {
       manager.selIndex++;
       zzfx(...audio.interactionClick);
     }
@@ -1842,7 +1834,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       case MANAGER_STATES.IN_PROGRESS: {
         manager.gameRuntime += deltaTime;
 
-        if (justPressedInput.pause) {
+        if (justPressedInput.p) {
           manager.gameState = MANAGER_STATES.PAUSED;
         }
 
@@ -1887,7 +1879,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       case MANAGER_STATES.WON:
       case MANAGER_STATES.DEAD:
       case MANAGER_STATES.START:
-        if (input.enter) {
+        if (input.e) {
           manager.selIndex = 0;
           manager.selLength = playerTypes.length - 1;
           assignPlayer(playerTypes[0]);
@@ -1906,7 +1898,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           assignPlayer(type);
         }
 
-        if (justPressedInput.enter) {
+        if (justPressedInput.e) {
           startNewGame(playerTypes[manager.selIndex]);
           zzfx(...audio.interactionClick);
         }
@@ -1916,7 +1908,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       case MANAGER_STATES.PICKING_UPGRADE:
         managerSelectionTick();
 
-        if (justPressedInput.enter) {
+        if (justPressedInput.e) {
           const upgrade = manager.upgrades[manager.selIndex];
           upgrade.use();
           player.upgrades.push(upgrade);
@@ -1928,7 +1920,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         break;
 
       case MANAGER_STATES.PAUSED:
-        if (justPressedInput.pause || justPressedInput.enter) {
+        if (justPressedInput.p || justPressedInput.e) {
           manager.gameState = MANAGER_STATES.IN_PROGRESS;
         }
 
@@ -1951,10 +1943,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     let moveX = 0;
     let moveY = 0;
 
-    input.up && (moveY -= 1);
-    input.down && (moveY += 1);
-    input.left && (moveX -= 1);
-    input.right && (moveX += 1);
+    input.u && (moveY -= 1);
+    input.d && (moveY += 1);
+    input.l && (moveX -= 1);
+    input.r && (moveX += 1);
 
     const speed = player.attrs.spd.val * deltaTime;
     const moveD = hypot(moveX, moveY);
