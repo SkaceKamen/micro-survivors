@@ -51,9 +51,9 @@ function microSurvivors(target = document.body) {
   const f = (n, d = 0) => n.toFixed(d);
 
   /**
-   * @param {number} x1 
-   * @param {number} y1 
-   * @param {number} x2 
+   * @param {number} x1
+   * @param {number} y1
+   * @param {number} x2
    * @param {number} y2
    */
   const distance = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
@@ -183,17 +183,17 @@ function microSurvivors(target = document.body) {
 
   /** @type {Record<string, keyof typeof justPressedInput>} */
   const inputMapping = {
-    "arrowup": "up",
-    "arrowdown": "down",
-    "arrowleft": "left",
-    "arrowright": "right",
-    "w": "up",
-    "s": "down",
-    "a": "left",
-    "d": "right",
-    "enter": "enter",
-    "escape": "pause",
-    "p": "pause",
+    arrowup: "up",
+    arrowdown: "down",
+    arrowleft: "left",
+    arrowright: "right",
+    w: "up",
+    s: "down",
+    a: "left",
+    d: "right",
+    enter: "enter",
+    escape: "pause",
+    p: "pause",
   };
 
   const input = {
@@ -1652,8 +1652,6 @@ function microSurvivors(target = document.body) {
       player.experience -= player.nextLevelExperience;
       player.nextLevelExperience += 10;
 
-      manager.state = MANAGER_STATES.PICKING_UPGRADE;
-
       const availableUpgrades = upgrades.filter((upgrade) => {
         if (upgrade.condition && !upgrade.condition(player)) {
           return false;
@@ -1672,6 +1670,10 @@ function microSurvivors(target = document.body) {
 
       // TODO: Weights
       manager.upgrades = shuffleArray(availableUpgrades).slice(0, 3);
+
+      if (manager.upgrades.length > 0) {
+        manager.state = MANAGER_STATES.PICKING_UPGRADE;
+      }
 
       player.health += 5;
     }
