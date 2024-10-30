@@ -4,8 +4,8 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "minify": "uglifyjs -m -c --mangle-props \"keep_quoted\" main.js -o main.min.js",
-    "minify-terser": "terser -m -c --mangle-props \"keep_quoted\" main.js -o main.min.terser.js"
+    "minify": "uglifyjs -m -c --mangle-props -o main.min.js main.js",
+    "minify-terser": "terser -m -c --mangle-props -o main.min.terser.js main.js"
   },
   "author": "Jan Zipek <jan@zipek.cz>",
   "license": "MIT",
