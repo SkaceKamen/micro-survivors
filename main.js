@@ -1204,6 +1204,7 @@ function microSurvivors(target = document.body) {
       ["Health", Math.floor(player.attrs.health.value)],
       ["Regeneration", f(player.attrs.healthRegen.value, 2) + "/s"],
       ["Speed", f(player.attrs.speed.value, 2)],
+      ["Health Drop", f(player.attrs.healthDrop.value * 100) + "%"],
     ];
 
     for (const weapon of player.weapons) {
