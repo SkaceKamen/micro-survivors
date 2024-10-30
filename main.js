@@ -54,6 +54,7 @@ const createPlayer = () => ({
   coneDamage: 8,
   coneTick: 0,
   coneTimeout: 0.5,
+  lastDamageTick: 0,
 });
 
 let player = createPlayer();
@@ -173,8 +174,30 @@ function renderUI() {
   }
 }
 
+function renderOverlays() {
+  const d = Math.min(1, player.lastDamageTick / 0.5);
+
+  if (d > 0) {
+    const damageOverlayGradient = ctx.createRadialGradient(
+      width / 2,
+      height / 2,
+      80,
+      width / 2,
+      height / 2,
+      width / 2
+    );
+
+    damageOverlayGradient.addColorStop(0, "rgba(255, 0, 0, 0)");
+    damageOverlayGradient.addColorStop(1, `rgba(255, 0, 0, ${d})`);
+
+    ctx.fillStyle = damageOverlayGradient;
+    ctx.fillRect(0, 0, width, height);
+  }
+}
+
 function render() {
   ctx.reset();
+  ctx.font = "14px monospace";
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.translate(-player.x + width / 2, -player.y + height / 2);
 
@@ -183,6 +206,7 @@ function render() {
   renderPickups();
 
   ctx.resetTransform();
+  renderOverlays();
   renderUI();
 }
 
@@ -233,6 +257,7 @@ function enemiesTick(deltaTime) {
       // Damage player when close
       if (distance < 10) {
         player.health -= type.health;
+        player.lastDamageTick = 0.5;
         enemy.damageTick = type.damageTick;
       }
 
@@ -266,7 +291,10 @@ function managerTick(deltaTime) {
         break;
       }
 
-      if (manager.spawnTimeout > 2) {
+      // Gradually increase spawn rate
+      const spawnRate = Math.max(0.01, 2 - manager.runtime / 60);
+
+      if (manager.spawnTimeout > spawnRate) {
         const angle = Math.random() * Math.PI * 2;
         const distance = Math.max(width, height) / 2 + Math.random() * 100;
 
@@ -280,6 +308,7 @@ function managerTick(deltaTime) {
 
         manager.spawnTimeout = 0;
       }
+
       break;
     }
     case MANAGER_STATES.DEAD:
@@ -344,6 +373,10 @@ function playerTick(deltaTime) {
     player.nextLevelExperience += 50;
     player.maxHealth += 10;
     player.health += 5;
+  }
+
+  if (player.lastDamageTick > 0) {
+    player.lastDamageTick -= deltaTime;
   }
 }
 
