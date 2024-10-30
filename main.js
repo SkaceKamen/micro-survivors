@@ -39,22 +39,96 @@ canvas.addEventListener("mousemove", (event) => {
   input.targetY = event.clientY;
 });
 
-const createPlayer = () => ({
+const playerTypes = [
+  {
+    health: 100,
+    speed: 25,
+    meleeAngle: Math.PI / 4,
+    meleeDistance: 80,
+    meleeDamage: 8,
+    meleeTimeout: 0.5,
+    pickupDistance: 50,
+  },
+];
+
+/**
+ * @param {string} attribute
+ * @param {any[]} [base]
+ * @param {any[]} [multiplier]
+ */
+const createAttribute = (attribute, base = [], multiplier = []) => ({
+  /**
+   * Add a new attribute modifier function
+   * @param {'base' | 'multiplier'} type
+   * @param {(player, value, attribute) => number} fn
+   */
+  push: (type, fn) => {
+    this[type] = [...this[type], fn];
+  },
+
+  // Base attribute value modifiers
+  base: [
+    // Default attribute value comes from the player type
+    (player, value) => value + playerTypes[player.type][attribute],
+    ...base,
+  ],
+
+  // Multiplier attribute value modifiers
+  multiplier: [...multiplier],
+
+  $cached: null,
+  get value() {
+    if (
+      this.$cached?.base === this.base &&
+      this.$cached?.multiplier === this.multiplier &&
+      this.$cached?.playerLevel === player.level
+    ) {
+      return this.$cached.value;
+    }
+
+    const value =
+      this.base.reduce((acc, fn) => fn(player, acc, attribute), 0) *
+      this.multiplier.reduce((acc, fn) => fn(player, acc, attribute), 1);
+
+    this.$cached = {
+      base: this.base,
+      multiplier: this.multiplier,
+      playerLevel: player.level,
+      value,
+    };
+
+    return value;
+  },
+});
+
+const baseIncreaseWithLevel = (increasePerLevel) => (player, value) =>
+  value + player.level * increasePerLevel;
+
+const createPlayer = (type = 0) => ({
+  // Predefined constants
+  type,
+
+  // State values
   x: 0,
   y: 0,
   level: 0,
   experience: 0,
   nextLevelExperience: 50,
   health: 100,
-  maxHealth: 100,
-  speed: 25,
-  coneAngle: Math.PI / 4,
-  coneDistance: 80,
-  coneDirection: 0,
-  coneDamage: 8,
-  coneTick: 0,
-  coneTimeout: 0.5,
-  lastDamageTick: 0,
+  meleeTick: 0,
+  lastDamagedTick: 0,
+  meleeDirection: 0,
+
+  // Attribute values
+  attrs: {
+    speed: createAttribute("speed", [baseIncreaseWithLevel(0.2)]),
+    health: createAttribute("health", [baseIncreaseWithLevel(10)]),
+    meleeAngle: createAttribute("meleeAngle"),
+    meleeDistance: createAttribute("meleeDistance"),
+    meleeDamage: createAttribute("meleeDamage", [baseIncreaseWithLevel(2)]),
+    meleeTimeout: createAttribute("meleeTimeout"),
+    pickupDistance: createAttribute("pickupDistance"),
+  },
 });
 
 let player = createPlayer();
@@ -104,24 +178,28 @@ const PICKUP_TYPES = {
 const pickups = [];
 
 function renderPlayer() {
-  const coneD = 0.2 + (player.coneTick - player.coneTimeout);
+  const coneD = 0.2 + (player.meleeTick - player.attrs.meleeTimeout.value);
   if (coneD > 0) {
-    const coneA2 = player.coneAngle / 2;
+    const coneA2 = player.attrs.meleeAngle.value / 2;
 
     ctx.fillStyle = `rgba(255, 255, 255, ${coneD})`;
     ctx.beginPath();
     ctx.moveTo(player.x, player.y);
     ctx.lineTo(
-      player.x + Math.cos(player.coneDirection - coneA2) * player.coneDistance,
-      player.y + Math.sin(player.coneDirection - coneA2) * player.coneDistance
+      player.x +
+        Math.cos(player.meleeDirection - coneA2) *
+          player.attrs.meleeDistance.value,
+      player.y +
+        Math.sin(player.meleeDirection - coneA2) *
+          player.attrs.meleeDistance.value
     );
 
     ctx.arc(
       player.x,
       player.y,
-      player.coneDistance,
-      player.coneDirection - coneA2,
-      player.coneDirection + coneA2
+      player.attrs.meleeDistance.value,
+      player.meleeDirection - coneA2,
+      player.meleeDirection + coneA2
     );
 
     ctx.lineTo(player.x, player.y);
@@ -153,9 +231,9 @@ function renderUI() {
   ctx.fillStyle = "#600";
   ctx.fillRect(0, 0, width, 20);
   ctx.fillStyle = "#f66";
-  ctx.fillRect(0, 0, (player.health / player.maxHealth) * width, 20);
+  ctx.fillRect(0, 0, (player.health / player.attrs.health.value) * width, 20);
   ctx.fillStyle = "#fff";
-  ctx.fillText(`${player.health} / ${player.maxHealth}`, 2, 10);
+  ctx.fillText(`${player.health} / ${player.attrs.health.value}`, 2, 10);
 
   ctx.fillStyle = "#999";
   ctx.fillRect(0, 20, width, 15);
@@ -178,7 +256,7 @@ function renderUI() {
 }
 
 function renderOverlays() {
-  const d = Math.min(1, player.lastDamageTick / 0.5);
+  const d = Math.min(1, player.lastDamagedTick / 0.5);
 
   if (d > 0) {
     const damageOverlayGradient = ctx.createRadialGradient(
@@ -260,7 +338,7 @@ function enemiesTick(deltaTime) {
       // Damage player when close
       if (distance < 10) {
         player.health -= type.health;
-        player.lastDamageTick = 0.5;
+        player.lastDamagedTick = 0.5;
         enemy.damageTick = type.damageTick;
       }
 
@@ -347,7 +425,7 @@ function playerTick(deltaTime) {
     moveX += 1;
   }
 
-  const speed = player.speed * deltaTime;
+  const speed = player.attrs.speed.value * deltaTime;
   const moveD = Math.sqrt(moveX * moveX + moveY * moveY);
 
   if (moveD > 0) {
@@ -358,28 +436,28 @@ function playerTick(deltaTime) {
   const playerAbsoluteX = width / 2;
   const playerAbsoluteY = height / 2;
 
-  player.coneDirection = Math.atan2(
+  player.meleeDirection = Math.atan2(
     input.targetY - playerAbsoluteY,
     input.targetX - playerAbsoluteX
   );
 
-  if (player.coneTick > 0) {
-    player.coneTick -= deltaTime;
+  if (player.meleeTick > 0) {
+    player.meleeTick -= deltaTime;
   } else {
     applyPlayerConeAttack(deltaTime);
-    player.coneTick = player.coneTimeout;
+    player.meleeTick = player.attrs.meleeTimeout.value;
   }
 
   if (player.experience > player.nextLevelExperience) {
     player.level += 1;
     player.experience -= player.nextLevelExperience;
     player.nextLevelExperience += 50;
-    player.maxHealth += 10;
+
     player.health += 5;
   }
 
-  if (player.lastDamageTick > 0) {
-    player.lastDamageTick -= deltaTime;
+  if (player.lastDamagedTick > 0) {
+    player.lastDamagedTick -= deltaTime;
   }
 }
 
@@ -403,8 +481,9 @@ function pickupsTick(deltaTime) {
       }
 
       pickupsToRemove.push(index);
-    } else if (distance < 50) {
-      const speed = (60 - distance) * deltaTime;
+    } else if (distance < player.attrs.pickupDistance.value) {
+      const speed =
+        (player.attrs.pickupDistance.value + 10 - distance) * deltaTime * 2;
       pickup.x += (dx / distance) * speed;
       pickup.y += (dy / distance) * speed;
     }
@@ -420,16 +499,17 @@ function pickupsTick(deltaTime) {
 }
 
 function applyPlayerConeAttack(deltaTime) {
-  const coneStart = player.coneDirection - player.coneAngle / 2;
-  const coneEnd = player.coneDirection + player.coneAngle / 2;
+  const coneA2 = player.attrs.meleeAngle.value / 2;
+  const coneStart = player.meleeDirection - coneA2;
+  const coneEnd = player.meleeDirection + coneA2;
 
   for (const enemy of enemies) {
     const dx = enemy.x - player.x;
     const dy = enemy.y - player.y;
 
     if (
-      Math.abs(dx) > player.coneDistance ||
-      Math.abs(dy) > player.coneDistance
+      Math.abs(dx) > player.attrs.meleeDistance.value ||
+      Math.abs(dy) > player.attrs.meleeDistance.value
     ) {
       continue;
     }
@@ -439,8 +519,8 @@ function applyPlayerConeAttack(deltaTime) {
     if (angle > coneStart && angle < coneEnd) {
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      if (distance < player.coneDistance) {
-        enemy.health -= player.coneDamage;
+      if (distance < player.attrs.meleeDistance.value) {
+        enemy.health -= player.attrs.meleeDamage.value;
         enemy.hitTick = 0.1;
       }
     }
