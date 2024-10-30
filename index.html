@@ -5,12 +5,34 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>Micro Survivors</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" type="text/css" media="screen" href="main.css" />
+    <style>
+      body,
+      html {
+        background: #333;
+        text-align: center;
+      }
+
+      canvas {
+        background-color: #000;
+        margin: auto;
+        display: block;
+      }
+
+      a {
+        color: #aaa;
+        display: block;
+        margin-top: 40px;
+      }
+    </style>
     <script src="main.min.js"></script>
   </head>
   <body>
+    <div id="game"></div>
+    <a href="https://github.com/SkaceKamen/micro-survivors" target="_blank">
+      See source on GitHub
+    </a>
     <script>
-      microSurvivors();
+      microSurvivors(document.querySelector("#game"));
     </script>
   </body>
 </html>
