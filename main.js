@@ -556,7 +556,7 @@ const manager = {
   ...startingManagerState,
 };
 
-/** @typedef {{ health: number; speed: number; damage: number; damageTick: number; experience: number; boss?: boolean; pushBackResistance?: number; render: (x: number, y: number, hit: boolean) => void}} EnemyType */
+/** @typedef {{ health: number; speed: number; damage: number; damageTick: number; experience: number; boss?: boolean; pushBackResistance?: number; size: number; render: (x: number, y: number, hit: boolean) => void}} EnemyType */
 /** @param {EnemyType} type */
 const defineEnemy = (type) => type;
 
@@ -566,6 +566,7 @@ const boxLevel1 = defineEnemy({
   damage: 1,
   damageTick: 1,
   experience: 1,
+  size: 10,
   render: (x, y, hit) => draw.box(x, y, 10, hit ? "#fff" : "#aaa"),
 });
 
@@ -575,6 +576,7 @@ const boxLevel2 = defineEnemy({
   damage: 1,
   damageTick: 1,
   experience: 2,
+  size: 10,
   render: (x, y, hit) => {
     draw.box(x + 1, y + 1, 10, hit ? "#fff" : "#faa");
     draw.box(x - 1, y - 1, 10, hit ? "#fff" : "#4aa");
@@ -587,6 +589,7 @@ const boxLevel3 = defineEnemy({
   damage: 2,
   damageTick: 1,
   experience: 3,
+  size: 10,
   render: (x, y, hit) => {
     draw.box(x + 1, y + 1, 10, hit ? "#fff" : "#faa");
     draw.box(x - 1, y - 1, 10, hit ? "#fff" : "#4aa");
@@ -600,6 +603,7 @@ const boxBoss = defineEnemy({
   damage: 10,
   damageTick: 1,
   experience: 20,
+  size: 20,
   render: (x, y, hit) => draw.box(x, y, 20, hit ? "#fff" : "#faa"),
   boss: true,
 });
@@ -610,6 +614,7 @@ const triangleLevel1 = defineEnemy({
   damage: 2,
   damageTick: 1,
   experience: 2,
+  size: 10,
   render: (x, y, hit) => draw.triangle(x, y, 10, hit ? "#fff" : "#999"),
 });
 
@@ -619,6 +624,7 @@ const triangleLevel2 = defineEnemy({
   damage: 2,
   damageTick: 1,
   experience: 3,
+  size: 10,
   render: (x, y, hit) => draw.triangle(x, y, 10, hit ? "#fff" : "#4aa"),
 });
 
@@ -628,6 +634,7 @@ const triangleLevel3 = defineEnemy({
   damage: 3,
   damageTick: 1,
   experience: 4,
+  size: 10,
   render: (x, y, hit) => draw.triangle(x, y, 10, hit ? "#fff" : "#966"),
 });
 
@@ -639,6 +646,7 @@ const triangleBoss = defineEnemy({
   experience: 50,
   boss: true,
   pushBackResistance: 80,
+  size: 20,
   render: (x, y, hit) => draw.triangle(x, y, 20, hit ? "#fff" : "#faa"),
 });
 
@@ -648,6 +656,7 @@ const circleLevel1 = defineEnemy({
   damage: 1,
   damageTick: 1,
   experience: 3,
+  size: 10,
   render: (x, y, hit) => draw.circle(x, y, 5, hit ? "#fff" : "#999"),
 });
 
@@ -657,6 +666,7 @@ const circleLevel2 = defineEnemy({
   damage: 1,
   damageTick: 1,
   experience: 4,
+  size: 10,
   render: (x, y, hit) => draw.circle(x, y, 5, hit ? "#fff" : "#4aa"),
 });
 
@@ -666,6 +676,7 @@ const circleLevel3 = defineEnemy({
   damage: 1,
   damageTick: 1,
   experience: 5,
+  size: 10,
   render: (x, y, hit) => draw.circle(x, y, 6, hit ? "#fff" : "#4ca"),
 });
 
@@ -677,7 +688,8 @@ const circleBoss = defineEnemy({
   experience: 4,
   boss: true,
   pushBackResistance: 80,
-  render: (x, y, hit) => draw.circle(x, y, 5, hit ? "#fff" : "#faa"),
+  size: 16,
+  render: (x, y, hit) => draw.circle(x, y, 8, hit ? "#fff" : "#faa"),
 });
 
 const finalBoss = defineEnemy({
@@ -688,6 +700,7 @@ const finalBoss = defineEnemy({
   experience: 0,
   boss: true,
   pushBackResistance: 1000,
+  size: 50,
   render: (x, y, hit) => {
     draw.circle(x, y, 25, hit ? "#fff" : "#faa");
     draw.box(x, y, 25, hit ? "#fff" : "#4aa");
@@ -1176,7 +1189,7 @@ function enemiesTick(deltaTime) {
     // When ready to attack
     if (enemy.damageTick <= 0) {
       // Damage player when close
-      if (distance < 10) {
+      if (distance < enemy.type.size - 2) {
         player.health -= type.health;
         player.lastDamagedTick = 0.5;
         enemy.damageTick = type.damageTick;
@@ -1470,7 +1483,10 @@ function playerTick(deltaTime) {
               const dy = enemy.y - bladeY;
               const distance = Math.sqrt(dx * dx + dy * dy);
 
-              if (distance < data.size(weapon.level) / 2 + 5) {
+              if (
+                distance <
+                data.size(weapon.level) / 2 + enemy.type.size + 2
+              ) {
                 enemy.health -= data.damage(weapon.level);
                 enemy.hitTick = 0.1;
                 enemy.pushBackX = Math.cos(angle) * 20;
