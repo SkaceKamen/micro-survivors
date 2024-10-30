@@ -152,6 +152,21 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    */
   const pickRandom = (a) => a[round(random() * (a.length - 1))];
 
+  /**
+   * @param {number} a
+   * @param {number} [b]
+   * @returns {number}
+   */
+  const optionalStatsDiff = (a, b) => (b ? b - a : a);
+
+  /**
+   * @template T
+   * @param {(() => T) | T} v
+   * @returns {T}
+   */
+  // @ts-expect-error v() is for some reason throwing error, fix later
+  const fnOrV = (v) => (typeof v == "function" ? v() : v);
+
   // #endregion
 
   // #region Rendering functions
@@ -294,6 +309,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   // @ts-expect-error null check doesn't provide much value here, lets just skip it
   const ctx = canvas.getContext`2d`;
 
+  // #region Input handling
+
   /** @type {Record<string, keyof typeof input>} */
   const inputMapping = {
     38: "u",
@@ -344,6 +361,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     input.targetY = event.clientY - rect.top;
   };
 
+  // #endregion
+
+  // #region Weapons definition
+
   /**
    * @template LevelType
    * @param {[LevelType, ...Partial<LevelType>[]]} levels
@@ -362,6 +383,28 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       result[i] = previous;
     });
     return result;
+  };
+
+  let enemyHitSounds = 0;
+
+  /**
+   * @param {Enemy} enemy
+   * @param {number} damage
+   * @param {number} angle
+   */
+  const hitEnemy = (enemy, damage, angle, pushBack = 20) => {
+    enemy.health -= damage;
+    enemy.hitTick = 0.1;
+    if (pushBack) {
+      enemy.pushBackX = cos(angle) * pushBack;
+      enemy.pushBackY = sin(angle) * pushBack;
+    }
+
+    if (enemyHitSounds++ < 4) {
+      zzfx(...audio.enemyHit);
+    }
+
+    manager.damageDone += damage;
   };
 
   /**
@@ -388,28 +431,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /**
    * @typedef {WeaponTypeBase<MagicOrbsWeaponLevel>} MagicOrbsWeapon
    */
-
-  let enemyHitSounds = 0;
-
-  /**
-   * @param {Enemy} enemy
-   * @param {number} damage
-   * @param {number} angle
-   */
-  const hitEnemy = (enemy, damage, angle, pushBack = 20) => {
-    enemy.health -= damage;
-    enemy.hitTick = 0.1;
-    if (pushBack) {
-      enemy.pushBackX = cos(angle) * pushBack;
-      enemy.pushBackY = sin(angle) * pushBack;
-    }
-
-    if (enemyHitSounds++ < 4) {
-      zzfx(...audio.enemyHit);
-    }
-
-    manager.damageDone += damage;
-  };
 
   /**
    * @param {MagicOrbsWeaponLevel} attrs
@@ -495,13 +516,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /**
    * @typedef {WeaponTypeBase<MeleeWeaponLevel>} MeleeWeapon
    */
-
-  /**
-   * @param {number} a
-   * @param {number} [b]
-   * @returns {number}
-   */
-  const optionalStatsDiff = (a, b) => (b ? b - a : a);
 
   /** @type {MeleeWeapon} */
   const sword = {
@@ -641,6 +655,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   /** @typedef {ReturnType<typeof initializeWeapon>} Weapon */
 
+  // #endregion
+
+  // #region Player classes definition
+
   /**
    * @typedef PlayerType
    * @property {string} nam
@@ -719,8 +737,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     },
   ];
 
+  // #endregion
+
+  // #region Upgrades
+
   /** @typedef {() => void} UpgradeApply */
-  /** @typedef {() => boolean} UpgradeCondition */
 
   /**
    * @typedef Upgrade
@@ -857,14 +878,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     weaponUpgrade(barbedWire),
   ];
 
-  /**
-   * @template T
-   * @param {(() => T) | T} v
-   * @returns {T}
-   */
-  // @ts-expect-error v() is for some reason throwing error, fix later
-  const fnOrV = (v) => (typeof v == "function" ? v() : v);
+  // #endregion
 
+  // #region Player definition
   /**
    * @param {number} [base=0]
    * @param {number} [basePerLevel=0]
@@ -961,6 +977,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   const player = createPlayer(playerTypes[0]);
 
+  // #endregion
+
+  // #region Manager definition
   const MANAGER_STATES = {
     IN_PROGRESS: 0,
     DEAD: 1,
@@ -988,11 +1007,15 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     ...startingManagerState,
   };
 
+  // #endregion
+
   /**
    * @param {PlayerType} type
    * @returns
    */
   const assignPlayer = (type) => Object.assign(player, createPlayer(type));
+
+  // #region Enemies definition
 
   /**
    * @template T
@@ -1150,6 +1173,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     },
   });
 
+  // #endregion
+
+  // #region Waves definition
+
   /**
    * @param {number} from
    * @param {number} to
@@ -1225,6 +1252,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const bossAt = 600;
   const waveTime = bossAt / (spawnRates.length - 1);
 
+  // #endregion
+
   /**
    * @param {number} x
    * @param {number} y
@@ -1255,6 +1284,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   /** @type {Array<{ x: number; y: number; health?: number; experience?: number; }>} */
   const pickups = [];
+
+  // #region Rendering logic
 
   const bgBoxSize = 50;
   const bgBoxSize2 = bgBoxSize * 2;
@@ -1656,6 +1687,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     renderUI();
   };
 
+  // #endregion
+
+  // #region Game logic
+
   /**
    * @param {number} deltaTime
    */
@@ -2046,6 +2081,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     }
   };
 
+  // #endregion
+
+  // #region Game loop handler
+
   let lastTime = 0;
 
   /**
@@ -2060,6 +2099,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     render();
     gameLogicTick(delta);
   };
+
+  // #endregion
 
   target.appendChild(canvas);
   requestAnimationFrame(animationFrameTick);
