@@ -5,7 +5,6 @@
   TODO:
    - add waves until 10 minutes mark, add final boss there
    - add pickup weapons:
-    - saw blades - rotates around player
     - barbed wire - slows & damages enemies around player
     - shuriken - ranged attack in random direction
     - lightning - chain lightning attack?
@@ -17,7 +16,6 @@
    - map events?
     - enemy spawn in a shape around player?
    - starting screen?
-   - map background?
 */
 
 // #region Utility functions
@@ -34,11 +32,8 @@ function formatTime(seconds) {
     .padStart(2, "0")}`;
 }
 
-/**
- * @param {string} message
- */
-const raise = (message) => {
-  throw new Error(message);
+const raise = () => {
+  throw new Error();
 };
 
 /**
@@ -148,7 +143,7 @@ const createCanvas = (width, height) => {
   canvas.width = width;
   canvas.height = height;
 
-  const ctx = canvas.getContext("2d") ?? raise("Failed to get 2d context");
+  const ctx = canvas.getContext("2d") ?? raise();
 
   return {
     canvas,
@@ -542,6 +537,7 @@ const MANAGER_STATES = {
   DEAD: 1,
   PICKING_UPGRADE: 2,
   PAUSED: 3,
+  WIN: 4,
 };
 
 const startingManagerState = {
@@ -920,6 +916,29 @@ function renderPlayerStatsUi(x, y, w) {
   }
 }
 
+/**
+ * @param {number} x
+ * @param {number} y
+ * @param {number} w
+ */
+function renderSurvivalStatsUi(x, y, w) {
+  const stats = [
+    [`Survived for`, formatTime(manager.runtime)],
+    [`Level`, `${player.level + 1}`],
+    [`Damage done`, `${manager.damageDone.toFixed(0)}`],
+    [`DPS`, `${(manager.damageDone / manager.runtime).toFixed(2)}`],
+    [`Kills`, `${manager.kills}`],
+  ];
+
+  for (const stat of stats) {
+    draw.text(x + w / 2 - 5, y, stat[0], "#ccc", "right");
+    draw.text(x + w / 2 + 5, y, stat[1], "#fff", "left");
+    y += 15;
+  }
+
+  return y;
+}
+
 function renderUI() {
   draw.rect(50, 0, width - 50, 20, "#600");
   draw.rect(
@@ -967,24 +986,10 @@ function renderUI() {
     let y = 100;
 
     draw.rect(0, 0, width, height, "rgba(0, 0, 0, 0.8)");
-    draw.text(width / 2, y, "You're dead!", "#f66", "center", "top");
+    draw.text(width / 2, y, "YOU'RE DEAD!", "#f88", "center", "top");
 
     y += 30;
-
-    const stats = [
-      [`Survived for`, formatTime(manager.runtime)],
-      [`Level`, `${player.level + 1}`],
-      [`Damage done`, `${manager.damageDone}`],
-      [`DPS`, `${(manager.damageDone / manager.runtime).toFixed(2)}`],
-      [`Kills`, `${manager.kills}`],
-    ];
-
-    for (const stat of stats) {
-      draw.text(width / 2 - 5, y, stat[0], "#ccc", "right");
-      draw.text(width / 2 + 5, y, stat[1], "#fff", "left");
-      y += 15;
-    }
-
+    y = renderSurvivalStatsUi(50, y, width - 100);
     y += 30;
 
     draw.text(width / 2, y, "Press ENTER to restart", "#fff", "center");
@@ -1032,9 +1037,20 @@ function renderUI() {
   }
 
   if (manager.state === MANAGER_STATES.PAUSED) {
-    draw.rect(0, 0, width, height, "rgba(0, 0, 0, 0.9)");
+    draw.overlay("rgba(0, 0, 0, 0.9)");
     draw.text(width / 2, 100, "PAUSED", "#fff", "center", "middle");
     renderPlayerStatsUi(100, 110, width - 200);
+  }
+
+  if (manager.state === MANAGER_STATES.WIN) {
+    draw.overlay("rgba(0, 0, 0, 0.9)");
+    draw.text(width / 2, 100, "YOU WON", "#fff", "center", "middle");
+
+    let y = 130;
+    y = renderSurvivalStatsUi(100, y, width - 200);
+    y += 30;
+
+    draw.text(width / 2, y, "Press ENTER to restart", "#fff", "center");
   }
 }
 
@@ -1238,6 +1254,19 @@ function spawnEnemy(type) {
   );
 }
 
+function startNewGame() {
+  player = createPlayer();
+
+  for (const key in startingManagerState) {
+    manager[key] = startingManagerState[key];
+  }
+
+  manager.state = MANAGER_STATES.RUNNING;
+
+  enemies.length = 0;
+  pickups.length = 0;
+}
+
 /**
  * @param {number} deltaTime
  */
@@ -1260,6 +1289,10 @@ function managerTick(deltaTime) {
         spawnRates.findIndex((rate) => rate.from > manager.runtime) - 1;
       const spawnRate =
         spawnRates[spawnRateIndex < 0 ? spawnRates.length - 1 : spawnRateIndex];
+
+      if (spawnRateIndex === -2 && enemies.length === 0) {
+        manager.state = MANAGER_STATES.WIN;
+      }
 
       if (spawnRate) {
         if (spawnRateIndex !== manager.lastSpawnRate) {
@@ -1284,19 +1317,10 @@ function managerTick(deltaTime) {
       break;
     }
 
+    case MANAGER_STATES.WIN:
     case MANAGER_STATES.DEAD:
       if (input.enter) {
-        player = createPlayer();
-
-        // Reset game state
-        for (const key in startingManagerState) {
-          manager[key] = startingManagerState[key];
-        }
-
-        manager.state = MANAGER_STATES.RUNNING;
-
-        enemies.length = 0;
-        pickups.length = 0;
+        startNewGame();
       }
 
       break;
