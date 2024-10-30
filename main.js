@@ -11,8 +11,20 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const help = ["WASD to move", "Mouse to aim", "Survive", "Kill end boss"];
   const w2 = width / 2;
   const h2 = height / 2;
-  const { floor, ceil, random, round, cos, sin, min, hypot, abs, atan2, PI } =
-    Math;
+  const {
+    floor,
+    ceil,
+    random,
+    round,
+    cos,
+    sin,
+    min,
+    hypot,
+    abs,
+    atan2,
+    PI,
+    max,
+  } = Math;
   const PI2 = PI * 2;
   const pressEnter = "Press ENTER to ";
   const pressEnterToStart = pressEnter + "start";
@@ -1739,7 +1751,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       if (enemy.damageTick <= 0) {
         // Damage player when close
         if (distance < enemy.type.radius - 2) {
-          player.health -= Math.max(0, type.damage - player.attrs.armor.val);
+          player.health -= max(0, type.damage - player.attrs.armor.val);
           player.lastDamagedTick = 0.5;
           enemy.damageTick = type.damageTick;
         }
@@ -1758,34 +1770,26 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       enemy.y += velocityY;
 
       // Process push-back
-      if (abs(enemy.pushBackX) > 0.1) {
-        const diff =
-          (enemy.pushBackX > 0 ? -1 : 1) *
-          deltaTime *
-          (type.pushBackResistance ?? 20);
+      let diff =
+        (enemy.pushBackX > 0 ? -1 : 1) *
+        deltaTime *
+        (type.pushBackResistance ?? 20);
 
-        if (abs(diff) > abs(enemy.pushBackX)) {
-          enemy.pushBackX = 0;
-        } else {
-          enemy.pushBackX += diff;
-        }
-      } else {
+      if (abs(diff) > abs(enemy.pushBackX)) {
         enemy.pushBackX = 0;
+      } else {
+        enemy.pushBackX += diff;
       }
 
-      if (abs(enemy.pushBackY) > 0.1) {
-        const diff =
-          (enemy.pushBackY > 0 ? -1 : 1) *
-          deltaTime *
-          (type.pushBackResistance ?? 20);
+      diff =
+        (enemy.pushBackY > 0 ? -1 : 1) *
+        deltaTime *
+        (type.pushBackResistance ?? 20);
 
-        if (abs(diff) > abs(enemy.pushBackY)) {
-          enemy.pushBackY = 0;
-        } else {
-          enemy.pushBackY += diff;
-        }
-      } else {
+      if (abs(diff) > abs(enemy.pushBackY)) {
         enemy.pushBackY = 0;
+      } else {
+        enemy.pushBackY += diff;
       }
 
       index++;
@@ -1803,7 +1807,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    */
   const spawnEnemy = (type) => {
     const angle = random() * PI2;
-    const side = Math.max(width, height) / 2;
+    const side = max(width, height) / 2;
     const minDistance = hypot(side, side);
     const distance = minDistance + random() * 15;
 
@@ -1899,16 +1903,15 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         break;
 
       case MANAGER_STATES.PICKING_PLAYER:
-        if (justPressedInput.enter) {
-          startNewGame(playerTypes[manager.selIndex]);
-        }
-
         managerSelectionTick();
-
         const type = playerTypes[manager.selIndex];
 
         if (player.typ !== type) {
           assignPlayer(type);
+        }
+
+        if (justPressedInput.enter) {
+          startNewGame(playerTypes[manager.selIndex]);
         }
 
         break;
@@ -1960,13 +1963,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       player.y += (moveY / moveD) * speed;
     }
 
-    const playerAbsoluteX = w2;
-    const playerAbsoluteY = h2;
-
-    player.meleeDirection = atan2(
-      input.targetY - playerAbsoluteY,
-      input.targetX - playerAbsoluteX,
-    );
+    player.meleeDirection = atan2(input.targetY - w2, input.targetX - h2);
 
     if (player.experience >= player.nextLevelExperience) {
       player.lvl += 1;
@@ -1994,11 +1991,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         }));
 
       manager.upgrades = weightedPickItems(availableUpgrades, 3);
-      manager.selLength = manager.upgrades.length - 1;
 
       if (manager.upgrades.length > 0) {
         manager.gameState = MANAGER_STATES.PICKING_UPGRADE;
         manager.selIndex = 0;
+        manager.selLength = manager.upgrades.length - 1;
       }
 
       player.health += 5;
