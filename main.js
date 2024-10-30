@@ -1002,6 +1002,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   };
 
   /**
+   * @param {PlayerType} type
+   * @returns
+   */
+  const assignPlayer = (type) => Object.assign(player, createPlayer(type));
+
+  /**
    * @template T
    * @template {keyof T} K
    * @typedef {Partial<Pick<T, K>> & Omit<T, K>} WithOptional<T, K>
@@ -1640,7 +1646,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         const type = playerTypes[manager.selectedIndex];
 
         if (player.typ !== type) {
-          Object.assign(player, createPlayer(type));
+          assignPlayer(type);
         }
 
         const stats = getPlayerStats(player, true);
@@ -1859,12 +1865,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     const minDistance = hypot(side, side);
     const distance = minDistance + random() * 15;
 
-    enemies.push(
-      initializeEnemy(
-        player.x + cos(angle) * distance,
-        player.y + sin(angle) * distance,
-        type,
-      ),
+    pushEnemy(
+      player.x + cos(angle) * distance,
+      player.y + sin(angle) * distance,
+      type,
     );
   };
 
@@ -1872,7 +1876,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {PlayerType} playerType
    */
   const startNewGame = (playerType) => {
-    Object.assign(player, createPlayer(playerType));
+    assignPlayer(playerType);
     Object.assign(manager, startingManagerState);
 
     manager.gameState = MANAGER_STATES.RUNNING;
@@ -1940,7 +1944,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       case MANAGER_STATES.START:
         if (input.enter) {
           manager.selectedIndex = 0;
-          Object.assign(player, createPlayer(playerTypes[0]));
+          assignPlayer(playerTypes[0]);
           manager.gameState = MANAGER_STATES.PICKING_PLAYER;
         }
 
