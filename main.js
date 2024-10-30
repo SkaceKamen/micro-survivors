@@ -57,10 +57,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const formatTime = (seconds) =>
     pad(floor(seconds / 60)) + ":" + pad(floor(seconds % 60));
 
-  const raise = () => {
-    throw new Error();
-  };
-
   /**
    * Format angle
    *
@@ -241,7 +237,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   canvas.width = width;
   canvas.height = height;
 
-  const ctx = canvas.getContext("2d") ?? raise();
+  /** @type {CanvasRenderingContext2D} */
+  // @ts-expect-error null check doesn't provide much value here, lets just skip it
+  const ctx = canvas.getContext("2d");
 
   /** @type {Record<string, keyof typeof justPressedInput>} */
   const inputMapping = {
