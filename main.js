@@ -1041,7 +1041,7 @@ function microSurvivors(target = document.body) {
           if (alpha > 0) {
             const coneA2 = attrs.angle / 2;
 
-            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.fillStyle = `rgba(255,255,255,${alpha})`;
             ctx.beginPath();
             ctx.moveTo(player.x, player.y);
             ctx.lineTo(
@@ -1074,7 +1074,7 @@ function microSurvivors(target = document.body) {
             player.x,
             player.y,
             attrs.range,
-            `rgba(255, 0, 0, ${alpha})`
+            `rgba(255,0,0,${alpha})`
           );
 
           break;
@@ -1235,7 +1235,7 @@ function microSurvivors(target = document.body) {
     if (manager.state === MANAGER_STATES.DEAD) {
       let y = 100;
 
-      draw.rect(0, 0, width, height, "rgba(0, 0, 0, 0.8)");
+      draw.rect(0, 0, width, height, "rgba(0,0,0,0.8)");
       draw.text(width / 2, y, "YOU'RE DEAD!", "#f88", "center", "top");
 
       y += 30;
@@ -1246,7 +1246,7 @@ function microSurvivors(target = document.body) {
     }
 
     if (manager.state === MANAGER_STATES.PICKING_UPGRADE) {
-      draw.overlay("rgba(0, 0, 0, 0.9)");
+      draw.overlay("rgba(0,0,0,0.9)");
       draw.text(width / 2, 10, "LEVEL UP", "#fff", "center", "top");
 
       for (let i = 0; i < manager.upgrades.length; i++) {
@@ -1293,13 +1293,13 @@ function microSurvivors(target = document.body) {
     }
 
     if (manager.state === MANAGER_STATES.PAUSED) {
-      draw.overlay("rgba(0, 0, 0, 0.9)");
+      draw.overlay("rgba(0,0,0,0.9)");
       draw.text(width / 2, 100, "PAUSED", "#fff", "center", "middle");
       renderPlayerStatsUi(100, 110, width - 200);
     }
 
     if (manager.state === MANAGER_STATES.WIN) {
-      draw.overlay("rgba(0, 0, 0, 0.9)");
+      draw.overlay("rgba(0,0,0,0.9)");
       draw.text(width / 2, 100, "YOU WON", "#fff", "center", "middle");
 
       let y = 130;
@@ -1323,8 +1323,8 @@ function microSurvivors(target = document.body) {
         width / 2
       );
 
-      damageOverlayGradient.addColorStop(0, "rgba(255, 0, 0, 0)");
-      damageOverlayGradient.addColorStop(1, `rgba(255, 0, 0, ${d})`);
+      damageOverlayGradient.addColorStop(0, "rgba(255,0,0,0)");
+      damageOverlayGradient.addColorStop(1, `rgba(255,0,0,${d})`);
 
       ctx.fillStyle = damageOverlayGradient;
       ctx.fillRect(0, 0, width, height);
@@ -1341,8 +1341,8 @@ function microSurvivors(target = document.body) {
         width / 2
       );
 
-      pickupOverlayGradient.addColorStop(0, "rgba(255, 255, 255, 0)");
-      pickupOverlayGradient.addColorStop(1, `rgba(255, 255, 255, ${p * 0.15})`);
+      pickupOverlayGradient.addColorStop(0, "#fff");
+      pickupOverlayGradient.addColorStop(1, `rgba(255,255,255,${p * 0.15})`);
 
       ctx.fillStyle = pickupOverlayGradient;
       ctx.fillRect(0, 0, width, height);
@@ -1654,7 +1654,7 @@ function microSurvivors(target = document.body) {
 
       manager.state = MANAGER_STATES.PICKING_UPGRADE;
 
-      const availableUpgrades = upgrades.filter((upgrade, index) => {
+      const availableUpgrades = upgrades.filter((upgrade) => {
         if (upgrade.condition && !upgrade.condition(player)) {
           return false;
         }
