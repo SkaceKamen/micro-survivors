@@ -29,6 +29,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const pressEnter = "Press ENTER to ";
   const pressEnterToStart = pressEnter + "start";
   const pressEnterToRestart = pressEnter + "restart";
+  const center = "center";
+  const top = "top";
+  const left = "left";
+  const right = "right";
+  const middle = "middle";
   // #endregion
 
   // #region Utility functions
@@ -44,11 +49,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {number} seconds
    * @returns {string}
    */
-  function formatTime(seconds) {
-    const minutes = floor(seconds / 60);
-    const remainingSeconds = floor(seconds % 60);
-    return pad(minutes) + ":" + pad(remainingSeconds);
-  }
+  const formatTime = (seconds) =>
+    pad(floor(seconds / 60)) + ":" + pad(floor(seconds % 60));
 
   const raise = () => {
     throw new Error();
@@ -82,13 +84,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {A[]} array
    * @returns {A[]}
    */
-  function shuffleArray(array) {
+  const shuffleArray = (array) => {
     for (let i = array.length - 1; i >= 0; i--) {
       const j = floor(random() * (i + 1));
       [array[i], array[j]] = [array[j], array[i]];
     }
     return array;
-  }
+  };
 
   /**
    * @template A
@@ -155,7 +157,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
      * @param {CanvasTextAlign} [hAlign="left"]
      * @param {CanvasTextBaseline} [vAlign="top"]
      */
-    text(x, y, text, color, hAlign = "left", vAlign = "top", size = 14) {
+    text(x, y, text, color, hAlign = left, vAlign = top, size = 14) {
       ctx.font = `${size}px ${font}`;
       ctx.fillStyle = color;
       ctx.textAlign = hAlign;
@@ -195,7 +197,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
     for (const [name, value] of table) {
       draw.text(x, y, `${name}:`, "#aaa");
-      draw.text(x + rowWidth - 5, y, `${value}`, "#fff", "right");
+      draw.text(x + rowWidth - 5, y, `${value}`, "#fff", right);
 
       y += rowHeight;
 
@@ -232,12 +234,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const inputMapping = {
     "arrowup": "up",
     "arrowdown": "down",
-    "arrowleft": "left",
-    "arrowright": "right",
+    "arrowleft": left,
+    "arrowright": right,
     "w": "up",
     "s": "down",
-    "a": "left",
-    "d": "right",
+    "a": left,
+    "d": right,
     "enter": "enter",
     "escape": "pause",
     "p": "pause",
@@ -1191,7 +1193,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /** @type {Array<{ x: number; y: number; health?: number; experience?: number; }>} */
   const pickups = [];
 
-  function renderBackground() {
+  const renderBackground = () => {
     const startX = floor((player.x - w2) / 50) * 50;
     const startY = floor((player.y - h2) / 50) * 50;
     const endX = ceil((player.x + w2) / 50) * 50;
@@ -1214,18 +1216,18 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         );
       }
     }
-  }
+  };
 
-  function renderPlayer() {
+  const renderPlayer = () => {
     for (const weapon of player.weapons) {
       /** @ts-expect-error can't be bothered to fight the level type here */
       weapon.type.render(weapon, weapon.type.levels[weapon.level]);
     }
 
     draw.rect(player.x - 5, player.y - 5, 10, 10, "#fff");
-  }
+  };
 
-  function renderEnemies() {
+  const renderEnemies = () => {
     for (const enemy of enemies) {
       const type = enemy.type;
       type.render(enemy.x, enemy.y, enemy.hitTick > 0 ? "#fff" : undefined);
@@ -1241,9 +1243,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         );
       }
     }
-  }
+  };
 
-  function renderPickups() {
+  const renderPickups = () => {
     for (const pickup of pickups) {
       draw.box(
         pickup.x - 3,
@@ -1256,14 +1258,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
             : "#ff0",
       );
     }
-  }
+  };
 
   /**
    * @param {number} x
    * @param {number} y
    * @param {number} w
    */
-  function renderPlayerStatsUi(x, y, w) {
+  const renderPlayerStatsUi = (x, y, w) => {
     const stats = [
       ["Base damage", formatNumber(player.attrs.damage.value)],
       ["Attack speed", formatNumber(player.attrs.attackSpeed.value, 2)],
@@ -1284,14 +1286,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     }
 
     renderStatsTable(x, y, w, height - y - 20, stats);
-  }
+  };
 
   /**
    * @param {number} x
    * @param {number} y
    * @param {number} w
    */
-  function renderSurvivalStatsUi(x, y, w) {
+  const renderSurvivalStatsUi = (x, y, w) => {
     const stats = [
       [`Survived`, formatTime(manager.runtime)],
       [`Level`, `${player.level + 1}`],
@@ -1301,15 +1303,15 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     ];
 
     for (const stat of stats) {
-      draw.text(x + w / 2 - 5, y, stat[0], "#ccc", "right");
-      draw.text(x + w / 2 + 5, y, stat[1], "#fff", "left");
+      draw.text(x + w / 2 - 5, y, stat[0], "#ccc", right);
+      draw.text(x + w / 2 + 5, y, stat[1], "#fff", left);
       y += 15;
     }
 
     return y;
-  }
+  };
 
-  function renderIngameUI() {
+  const renderIngameUI = () => {
     draw.rect(50, 0, width - 50, 20, "#600");
     draw.rect(
       50,
@@ -1324,8 +1326,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       10,
       floor(player.health) + "/" + floor(player.attrs.health.value),
       "#fff",
-      "left",
-      "middle",
+      left,
+      middle,
     );
 
     draw.rect(50, 20, width - 50, 12, "#999");
@@ -1342,26 +1344,26 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       27,
       player.experience + "/" + player.nextLevelExperience,
       "#000",
-      "left",
-      "middle",
+      left,
+      middle,
     );
 
     draw.rect(0, 0, 50, 32, "#000");
-    draw.text(25, 2, "level", "#666", "center", "top");
-    draw.text(25, 18, `${player.level + 1}`, "#fff", "center", "top");
+    draw.text(25, 2, "level", "#666", center, top);
+    draw.text(25, 18, `${player.level + 1}`, "#fff", center, top);
 
-    draw.text(w2, 35, formatTime(manager.runtime), "#fff", "center");
+    draw.text(w2, 35, formatTime(manager.runtime), "#fff", center);
 
     if (manager.runtime < 20) {
       let y = height - 30 - help.length * 15;
       for (const text of help) {
-        draw.text(10, y, text, "#fff", "left", "top");
+        draw.text(10, y, text, "#fff", left, top);
         y += 15;
       }
     }
-  }
+  };
 
-  function renderUI() {
+  const renderUI = () => {
     if (manager.state !== MANAGER_STATES.START) {
       renderIngameUI();
     }
@@ -1371,19 +1373,19 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         let y = 100;
 
         draw.overlay();
-        draw.text(w2, y, "YOU'RE DEAD!", "#f88", "center", "top", 24);
+        draw.text(w2, y, "YOU'RE DEAD!", "#f88", center, top, 24);
 
         y += 45;
         y = renderSurvivalStatsUi(50, y, width - 100);
         y += 30;
 
-        draw.text(w2, y, pressEnterToRestart, "#fff", "center");
+        draw.text(w2, y, pressEnterToRestart, "#fff", center);
         break;
       }
 
       case MANAGER_STATES.PICKING_UPGRADE: {
         draw.overlay();
-        draw.text(w2, 10, "LEVEL UP", "#fff", "center", "top");
+        draw.text(w2, 10, "LEVEL UP", "#fff", center, top);
 
         for (let i = 0; i < manager.upgrades.length; i++) {
           const upgrade = manager.upgrades[i];
@@ -1395,8 +1397,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           const x = 20;
           const y = 50 + i * 50;
 
-          ctx.textAlign = "left";
-          ctx.textBaseline = "top";
+          ctx.textAlign = left;
+          ctx.textBaseline = top;
           ctx.fillStyle = i === manager.selectedUpgradeIndex ? "#333" : "#222";
           ctx.fillRect(x, y, width - 40, 40);
 
@@ -1421,8 +1423,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
             y + 20,
             `${alreadyApplied}/${upgrade.maxCount}`,
             "#ccc",
-            "right",
-            "middle",
+            right,
+            middle,
           );
         }
 
@@ -1432,42 +1434,42 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       case MANAGER_STATES.PAUSED: {
         draw.overlay();
-        draw.text(w2, 100, "PAUSED", "#fff", "center", "middle");
+        draw.text(w2, 100, "PAUSED", "#fff", center, middle);
         renderPlayerStatsUi(20, 110, width - 40);
         break;
       }
 
       case MANAGER_STATES.WIN: {
         draw.overlay();
-        draw.text(w2, 100, "YOU WON", "#fff", "center", "middle");
+        draw.text(w2, 100, "YOU WON", "#fff", center, middle);
 
         let y = 130;
         y = renderSurvivalStatsUi(100, y, width - 200);
         y += 30;
 
-        draw.text(w2, y, pressEnterToRestart, "#fff", "center");
+        draw.text(w2, y, pressEnterToRestart, "#fff", center);
         break;
       }
 
       case MANAGER_STATES.START: {
         draw.overlay();
-        draw.text(w2, h2 - 40, "MICRO", "#fff", "center", "bottom", 68);
-        draw.text(w2, h2 - 40, "SURVIVORS", "#fff", "center", "top", 38);
-        draw.text(w2, height - 5, "by Kamen", "#ccc", "center", "bottom", 10);
+        draw.text(w2, h2 - 40, "MICRO", "#fff", center, "bottom", 68);
+        draw.text(w2, h2 - 40, "SURVIVORS", "#fff", center, top, 38);
+        draw.text(w2, height - 5, "by Kamen", "#ccc", center, "bottom", 10);
 
         ctx.globalAlpha =
           0.5 + (cos((performance.now() / 1000) * 5) * 0.5 + 0.5) * 0.5;
 
-        draw.text(w2, h2 + 50, pressEnterToStart, "#fff", "center");
+        draw.text(w2, h2 + 50, pressEnterToStart, "#fff", center);
 
         ctx.globalAlpha = 1;
 
         break;
       }
     }
-  }
+  };
 
-  function renderOverlays() {
+  const renderOverlays = () => {
     const d = min(1, player.lastDamagedTick / 0.5);
 
     if (d > 0) {
@@ -1490,9 +1492,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       draw.overlay(pickupOverlayGradient);
     }
-  }
+  };
 
-  function render() {
+  const render = () => {
     ctx.reset();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.translate(-player.x + w2, -player.y + h2);
@@ -1505,12 +1507,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     ctx.resetTransform();
     renderOverlays();
     renderUI();
-  }
+  };
 
   /**
    * @param {number} deltaTime
    */
-  function gameLogicTick(deltaTime) {
+  const gameLogicTick = (deltaTime) => {
     managerTick(deltaTime);
 
     switch (manager.state) {
@@ -1522,12 +1524,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     }
 
     inputTick();
-  }
+  };
 
   /**
    * @param {number} deltaTime
    */
-  function enemiesTick(deltaTime) {
+  const enemiesTick = (deltaTime) => {
     let index = 0;
     let enemiesToRemove = [];
 
@@ -1635,12 +1637,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       enemies.splice(index - offset, 1);
       offset += 1;
     }
-  }
+  };
 
   /**
    * @param {EnemyType} type
    */
-  function spawnEnemy(type) {
+  const spawnEnemy = (type) => {
     const angle = random() * PI2;
     const side = Math.max(width, height) / 2;
     const minDistance = hypot(side, side);
@@ -1653,21 +1655,21 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         type,
       ),
     );
-  }
+  };
 
-  function startNewGame() {
+  const startNewGame = () => {
     Object.assign(player, createPlayer(warrior));
     Object.assign(manager, startingManagerState);
 
     manager.state = MANAGER_STATES.RUNNING;
     enemies.length = 0;
     pickups.length = 0;
-  }
+  };
 
   /**
    * @param {number} deltaTime
    */
-  function managerTick(deltaTime) {
+  const managerTick = (deltaTime) => {
     switch (manager.state) {
       case MANAGER_STATES.RUNNING: {
         manager.runtime += deltaTime;
@@ -1752,18 +1754,18 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
         break;
     }
-  }
+  };
 
-  function inputTick() {
+  const inputTick = () => {
     for (const key in justPressedInput) {
       justPressedInput[key] = false;
     }
-  }
+  };
 
   /**
    * @param {number} deltaTime
    */
-  function playerTick(deltaTime) {
+  const playerTick = (deltaTime) => {
     let moveX = 0;
     let moveY = 0;
 
@@ -1846,12 +1848,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         weapon.damageTick -= deltaTime;
       }
     }
-  }
+  };
 
   /**
    * @param {number} deltaTime
    */
-  function pickupsTick(deltaTime) {
+  const pickupsTick = (deltaTime) => {
     let index = 0;
     let pickupsToRemove = [];
 
@@ -1885,46 +1887,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       pickups.splice(index - offset, 1);
       offset += 1;
     }
-  }
-
-  /**
-   * @param {Weapon} weapon
-   * @param {MeleeWeapon} type
-   */
-  function applyPlayerMeleeAttack(weapon, type) {
-    const attrs = type.levels[weapon.level];
-    const damage = attrs.damage + player.attrs.damage.value;
-
-    const coneA2 = attrs.angle / 2;
-    const coneStart = player.meleeDirection - coneA2;
-    const coneEnd = player.meleeDirection + coneA2;
-
-    for (const enemy of enemies) {
-      const dx = enemy.x - player.x;
-      const dy = enemy.y - player.y;
-      const angle = atan2(dy, dx);
-      const distance = hypot(dx, dy);
-      const offset = atan2(enemy.type.size / 2, distance);
-
-      if (angle + offset > coneStart && angle - offset < coneEnd) {
-        if (distance - enemy.type.size / 2 < attrs.range) {
-          enemy.health -= damage;
-          enemy.hitTick = 0.1;
-          enemy.pushBackX = cos(angle) * 25;
-          enemy.pushBackY = sin(angle) * 25;
-
-          manager.damageDone += damage;
-        }
-      }
-    }
-  }
+  };
 
   let lastTime = 0;
 
   /**
    * @param {DOMHighResTimeStamp} nextTime
    */
-  function animationFrameTick(nextTime) {
+  const animationFrameTick = (nextTime) => {
     requestAnimationFrame(animationFrameTick);
 
     const delta = (nextTime - lastTime) / 1000;
@@ -1932,7 +1902,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
     render();
     gameLogicTick(delta);
-  }
+  };
 
   target.appendChild(canvas);
   requestAnimationFrame(animationFrameTick);
