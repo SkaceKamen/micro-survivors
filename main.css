@@ -2,8 +2,3 @@ canvas {
   background-color: #000;
   margin: auto;
 }
-
-@font-face {
-  font-family: 'GameFont';
-  src: url('./assets/Unitblock-JpJma.woff2') format('woff2');
-}
