@@ -2,16 +2,14 @@
   "name": "micro-survivor",
   "version": "1.0.0",
   "description": "",
-  "main": "main.js",
+  "main": "main.min.js",
   "scripts": {
-    "minify": "uglifyjs -m -c --mangle-props keep_quoted --name-cache main.mangle-cache.json -o main.min.js main.js",
-    "minify-terser": "terser -m -c --mangle-props keep_quoted -o main.min.terser.js main.js"
+    "minify": "uglifyjs -m -c --mangle-props keep_quoted --name-cache main.mangle-cache.json -o main.min.js main.js"
   },
   "author": "Jan Zipek <jan@zipek.cz>",
   "license": "MIT",
   "devDependencies": {
     "prettier": "^3.3.3",
-    "terser": "^5.36.0",
     "uglify-js": "^3.19.3"
   }
 }
