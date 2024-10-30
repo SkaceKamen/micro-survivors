@@ -17,6 +17,7 @@
    - map events?
     - enemy spawn in a shape around player?
    - starting screen?
+   - map background?
 */
 
 // #region Utility functions
@@ -62,14 +63,106 @@ const pickRandom = (a) => a[Math.round(Math.random() * (a.length - 1))];
 
 // #endregion
 
+// #region Rendering functions
+/**
+ * @param {CanvasRenderingContext2D} ctx
+ * @returns
+ */
+const createDraw = (ctx) => ({
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} w
+   * @param {number} h
+   * @param {string} color
+   */
+  rect(x, y, w, h, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w, h);
+  },
+  /**
+   * @param {string} color
+   */
+  overlay(color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, width, height);
+  },
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} size
+   * @param {string} color
+   */
+  box(x, y, size, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x - size / 2, y - size / 2, size, size);
+  },
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} size
+   * @param {string} color
+   */
+  triangle(x, y, size, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x, y - size / 2);
+    ctx.lineTo(x - size / 2, y + size / 2);
+    ctx.lineTo(x + size / 2, y + size / 2);
+    ctx.fill();
+  },
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {string} text
+   * @param {string} color
+   * @param {CanvasTextAlign} [hAlign="left"]
+   * @param {CanvasTextBaseline} [vAlign="top"]
+   */
+  text(x, y, text, color, hAlign = "left", vAlign = "top") {
+    ctx.fillStyle = color;
+    ctx.textAlign = hAlign;
+    ctx.textBaseline = vAlign;
+    ctx.fillText(text, x, y);
+  },
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} radius
+   * @param {string} color
+   */
+  circle(x, y, radius, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  },
+});
+
+/**
+ * @param {number} width
+ * @param {number} height
+ */
+const createCanvas = (width, height) => {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext("2d") ?? raise("Failed to get 2d context");
+
+  return {
+    canvas,
+    ctx,
+  };
+};
+
+// #endregion
+
 const width = 400;
 const height = 400;
 
-const canvas = document.createElement("canvas");
-canvas.width = width;
-canvas.height = height;
-
-const ctx = canvas.getContext("2d") ?? raise("Failed to get 2d context");
+const { canvas, ctx } = createCanvas(width, height);
+const draw = createDraw(ctx);
 
 /** @type {Record<string, keyof typeof justPressedInput>} */
 const inputMapping = {
@@ -125,6 +218,48 @@ canvas.addEventListener("mousemove", (event) => {
   input.targetX = event.clientX;
   input.targetY = event.clientY;
 });
+
+const WEAPON_TYPES = {
+  /** @type {0} */
+  SAW_BLADES: 0,
+};
+
+/**
+ * @typedef SawBladesWeapon
+ * @property {typeof WEAPON_TYPES.SAW_BLADES} type
+ * @property {number} damage
+ * @property {number} range
+ * @property {number} rotationSpeed
+ * @property {number} damageRate
+ * @property {number} blades
+ * @property {number} size
+ */
+
+/**
+ * @typedef {SawBladesWeapon} WeaponType
+ */
+
+/** @type {SawBladesWeapon} */
+const sawBlades = {
+  type: WEAPON_TYPES.SAW_BLADES,
+  damage: 1,
+  range: 50,
+  rotationSpeed: Math.PI / 2,
+  damageRate: 0.1,
+  blades: 2,
+  size: 10,
+};
+
+/**
+ * @param {WeaponType} type
+ */
+const initializeWeapon = (type) => ({
+  type,
+  tick: 0,
+  damageTick: 0,
+});
+
+/** @typedef {ReturnType<typeof initializeWeapon>} Weapon */
 
 const playerTypes = [
   {
@@ -377,6 +512,10 @@ const createPlayer = (type = 0) => ({
   // Already applied upgrades, index in upgrades array
   /** @type {Upgrade[]} */
   upgrades: [],
+
+  // Weapons
+  /** @type {Weapon[]} */
+  weapons: [initializeWeapon(sawBlades)],
 });
 
 /** @typedef {ReturnType<typeof createPlayer>} Player */
@@ -406,82 +545,11 @@ const manager = {
   ...startingManagerState,
 };
 
-const draw = {
-  /**
-   * @param {number} x
-   * @param {number} y
-   * @param {number} w
-   * @param {number} h
-   * @param {string} color
-   */
-  rect(x, y, w, h, color) {
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, w, h);
-  },
-  /**
-   * @param {string} color
-   */
-  overlay(color) {
-    ctx.fillStyle = color;
-    ctx.fillRect(0, 0, width, height);
-  },
-  /**
-   * @param {number} x
-   * @param {number} y
-   * @param {number} size
-   * @param {string} color
-   */
-  box(x, y, size, color) {
-    ctx.fillStyle = color;
-    ctx.fillRect(x - size / 2, y - size / 2, size, size);
-  },
-  /**
-   * @param {number} x
-   * @param {number} y
-   * @param {number} size
-   * @param {string} color
-   */
-  triangle(x, y, size, color) {
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(x, y - size / 2);
-    ctx.lineTo(x - size / 2, y + size / 2);
-    ctx.lineTo(x + size / 2, y + size / 2);
-    ctx.fill();
-  },
-  /**
-   * @param {number} x
-   * @param {number} y
-   * @param {string} text
-   * @param {string} color
-   * @param {CanvasTextAlign} [hAlign="left"]
-   * @param {CanvasTextBaseline} [vAlign="top"]
-   */
-  text(x, y, text, color, hAlign = "left", vAlign = "top") {
-    ctx.fillStyle = color;
-    ctx.textAlign = hAlign;
-    ctx.textBaseline = vAlign;
-    ctx.fillText(text, x, y);
-  },
-  /**
-   * @param {number} x
-   * @param {number} y
-   * @param {number} radius
-   * @param {string} color
-   */
-  circle(x, y, radius, color) {
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fill();
-  },
-};
-
 /** @typedef {{ health: number; speed: number; damage: number; damageTick: number; experience: number; boss?: boolean; pushBackResistance?: number; render: (x: number, y: number, hit: boolean) => void}} EnemyType */
 /** @param {EnemyType} type */
-const createEnemy = (type) => type;
+const defineEnemy = (type) => type;
 
-const boxLevel1 = createEnemy({
+const boxLevel1 = defineEnemy({
   health: 10,
   speed: 20,
   damage: 1,
@@ -490,7 +558,7 @@ const boxLevel1 = createEnemy({
   render: (x, y, hit) => draw.box(x, y, 10, hit ? "#fff" : "#aaa"),
 });
 
-const boxLevel2 = createEnemy({
+const boxLevel2 = defineEnemy({
   health: 50,
   speed: 20,
   damage: 1,
@@ -502,7 +570,7 @@ const boxLevel2 = createEnemy({
   },
 });
 
-const boxLevel3 = createEnemy({
+const boxLevel3 = defineEnemy({
   health: 100,
   speed: 21,
   damage: 2,
@@ -515,7 +583,7 @@ const boxLevel3 = createEnemy({
   },
 });
 
-const boxBoss = createEnemy({
+const boxBoss = defineEnemy({
   health: 500,
   speed: 20,
   damage: 10,
@@ -525,7 +593,7 @@ const boxBoss = createEnemy({
   boss: true,
 });
 
-const triangleLevel1 = createEnemy({
+const triangleLevel1 = defineEnemy({
   health: 20,
   speed: 21,
   damage: 2,
@@ -534,7 +602,7 @@ const triangleLevel1 = createEnemy({
   render: (x, y, hit) => draw.triangle(x, y, 10, hit ? "#fff" : "#999"),
 });
 
-const triangleLevel2 = createEnemy({
+const triangleLevel2 = defineEnemy({
   health: 40,
   speed: 25,
   damage: 2,
@@ -543,7 +611,7 @@ const triangleLevel2 = createEnemy({
   render: (x, y, hit) => draw.triangle(x, y, 10, hit ? "#fff" : "#4aa"),
 });
 
-const triangleLevel3 = createEnemy({
+const triangleLevel3 = defineEnemy({
   health: 60,
   speed: 25,
   damage: 3,
@@ -552,7 +620,7 @@ const triangleLevel3 = createEnemy({
   render: (x, y, hit) => draw.triangle(x, y, 10, hit ? "#fff" : "#966"),
 });
 
-const triangleBoss = createEnemy({
+const triangleBoss = defineEnemy({
   health: 1000,
   speed: 25,
   damage: 10,
@@ -563,7 +631,7 @@ const triangleBoss = createEnemy({
   render: (x, y, hit) => draw.triangle(x, y, 20, hit ? "#fff" : "#faa"),
 });
 
-const circleLevel1 = createEnemy({
+const circleLevel1 = defineEnemy({
   health: 10,
   speed: 30,
   damage: 1,
@@ -572,7 +640,7 @@ const circleLevel1 = createEnemy({
   render: (x, y, hit) => draw.circle(x, y, 5, hit ? "#fff" : "#999"),
 });
 
-const circleLevel2 = createEnemy({
+const circleLevel2 = defineEnemy({
   health: 20,
   speed: 35,
   damage: 1,
@@ -581,7 +649,7 @@ const circleLevel2 = createEnemy({
   render: (x, y, hit) => draw.circle(x, y, 5, hit ? "#fff" : "#4aa"),
 });
 
-const circleLevel3 = createEnemy({
+const circleLevel3 = defineEnemy({
   health: 50,
   speed: 35,
   damage: 1,
@@ -590,7 +658,7 @@ const circleLevel3 = createEnemy({
   render: (x, y, hit) => draw.circle(x, y, 6, hit ? "#fff" : "#4ca"),
 });
 
-const circleBoss = createEnemy({
+const circleBoss = defineEnemy({
   health: 1000,
   speed: 35,
   damage: 5,
@@ -601,7 +669,7 @@ const circleBoss = createEnemy({
   render: (x, y, hit) => draw.circle(x, y, 5, hit ? "#fff" : "#faa"),
 });
 
-const finalBoss = createEnemy({
+const finalBoss = defineEnemy({
   health: 10000,
   speed: 35,
   damage: 5,
@@ -626,55 +694,55 @@ const finalBoss = createEnemy({
 
 /** @type {SpawnRate[]} */
 const spawnRates = [
-  { from: 0, types: [boxLevel1], rate: 0.8 },
-  { from: 30, types: [boxLevel1, triangleLevel1], rate: 0.8 },
-  { from: 80, types: [boxLevel1, triangleLevel1], rate: 0.4 },
-  { from: 120, types: [triangleLevel1], rate: 0.5, boss: boxBoss },
-  { from: 150, types: [triangleLevel1, circleLevel1], rate: 0.6 },
-  { from: 200, types: [triangleLevel1, circleLevel1], rate: 0.4 },
-  { from: 250, types: [boxLevel2], rate: 0.6 },
-  { from: 300, types: [boxLevel2, triangleLevel2, circleLevel1], rate: 0.5 },
+  { from: 0, types: [boxLevel1], rate: 0.6 },
+  { from: 30, types: [boxLevel1, triangleLevel1], rate: 0.6 },
+  { from: 80, types: [boxLevel1, triangleLevel1], rate: 0.2 },
+  { from: 120, types: [triangleLevel1], rate: 0.3, boss: boxBoss },
+  { from: 150, types: [triangleLevel1, circleLevel1], rate: 0.4 },
+  { from: 200, types: [triangleLevel1, circleLevel1], rate: 0.2 },
+  { from: 250, types: [boxLevel2], rate: 0.3 },
+  { from: 300, types: [boxLevel2, triangleLevel2, circleLevel1], rate: 0.25 },
   {
     from: 330,
     types: [triangleLevel2, circleLevel1],
     boss: triangleBoss,
-    rate: 0.5,
+    rate: 0.25,
   },
   {
     from: 380,
     types: [triangleLevel2, circleLevel2, boxLevel2],
-    rate: 0.4,
+    rate: 0.2,
   },
   {
     from: 450,
     types: [circleLevel2, boxLevel3],
-    rate: 0.4,
+    rate: 0.2,
   },
   {
     from: 500,
     types: [boxLevel3, triangleLevel3],
-    rate: 0.3,
+    rate: 0.15,
   },
   {
     from: 550,
     types: [boxLevel3, triangleLevel3],
-    rate: 0.2,
+    rate: 0.1,
   },
   {
     from: 600,
     types: [boxLevel3, triangleLevel3, circleLevel3],
-    rate: 0.3,
+    rate: 0.15,
   },
   {
     from: 650,
     types: [boxLevel3, triangleLevel3],
     boss: circleBoss,
-    rate: 0.3,
+    rate: 0.15,
   },
   {
     from: 700,
     types: [boxLevel3, triangleLevel3, circleLevel3],
-    rate: 0.2,
+    rate: 0.1,
   },
   {
     from: 720,
@@ -742,6 +810,25 @@ function renderPlayer() {
     ctx.fill();
   }
 
+  for (const weapon of player.weapons) {
+    switch (weapon.type.type) {
+      case WEAPON_TYPES.SAW_BLADES: {
+        const data = weapon.type;
+
+        const anglePerBlade = (Math.PI * 2) / data.blades;
+        const baseAngle = weapon.tick * data.rotationSpeed;
+
+        for (let i = 0; i < data.blades; i++) {
+          const angle = baseAngle + anglePerBlade * i;
+          const bladeX = player.x + Math.cos(angle) * data.range;
+          const bladeY = player.y + Math.sin(angle) * data.range;
+
+          draw.circle(bladeX, bladeY, data.size / 2, "#fff");
+        }
+      }
+    }
+  }
+
   draw.rect(player.x - 5, player.y - 5, 10, 10, "#fff");
 }
 
@@ -769,6 +856,11 @@ function renderPickups() {
   }
 }
 
+/**
+ * @param {number} x
+ * @param {number} y
+ * @param {number} w
+ */
 function renderPlayerStatsUi(x, y, w) {
   const stats = [
     ["Health", Math.floor(player.attrs.health.value)],
@@ -1289,6 +1381,48 @@ function playerTick(deltaTime) {
     player.attrs.health.value,
     player.health + player.attrs.healthRegen.value * deltaTime
   );
+
+  for (const weapon of player.weapons) {
+    weapon.tick += deltaTime;
+
+    switch (weapon.type.type) {
+      case WEAPON_TYPES.SAW_BLADES: {
+        const data = weapon.type;
+
+        if (weapon.damageTick <= 0) {
+          weapon.damageTick = data.damageRate;
+
+          const anglePerBlade = (Math.PI * 2) / data.blades;
+          const baseAngle = weapon.tick * data.rotationSpeed;
+
+          for (let i = 0; i < data.blades; i++) {
+            const angle = baseAngle + anglePerBlade * i;
+            const bladeX = player.x + Math.cos(angle) * data.range;
+            const bladeY = player.y + Math.sin(angle) * data.range;
+
+            for (const enemy of enemies) {
+              const dx = enemy.x - bladeX;
+              const dy = enemy.y - bladeY;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+
+              if (distance < data.size / 2 + 5) {
+                enemy.health -= data.damage;
+                enemy.hitTick = 0.1;
+                enemy.pushBackX = Math.cos(angle) * 5;
+                enemy.pushBackY = Math.sin(angle) * 5;
+
+                manager.damageDone += data.damage;
+              }
+            }
+          }
+        } else {
+          weapon.damageTick -= deltaTime;
+        }
+
+        break;
+      }
+    }
+  }
 }
 
 /**
