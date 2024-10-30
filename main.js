@@ -24,6 +24,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     atan2,
     PI,
     max,
+    tan,
   } = Math;
   const PI2 = PI * 2;
   const pressEnter = "Press ENTER to ";
@@ -40,7 +41,43 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const enemyStage2Color = "#faa";
   const enemyStage3Color = "#0ac";
   const darkGray = "#999";
+  // #endregion
 
+  // #region Compressed libraries
+  // prettier-ignore
+  let // ZzFXMicro - Zuper Zmall Zound Zynth - v1.3.1 by Frank Force ~ 1000 bytes
+  zzfxV=.3,               // volume
+  zzfxX=new AudioContext, // audio context
+  zzfx=                   // play sound
+  (p=1,k=.05,b=220,e=0,r=0,t=.1,q=0,D=1,u=0,y=0,v=0,z=0,l=0,E=0,A=0,F=0,c=0,w=1,m=0,B=0
+  // @ts-expect-error
+  ,N=0)=>{let d=2*PI,R=44100,G=u*=500*d/R/R,C=b*=(1-k+2*k*random(k=[]))*d/R,
+  g=0,H=0,a=0,n=1,I=0,J=0,f=0,h=N<0?-1:1,x=d*h*N*2/R,L=cos(x),Z=sin,K=Z(x)/4,O=1+K,
+  X=-2*L/O,Y=(1-K)/O,P=(1+h*L)/2/O,Q=-(h+L)/O,S=P,T=0,U=0,V=0,W=0;e=R*e+9;m*=R;r*=R;t*=
+  R;c*=R;y*=500*d/R**3;A*=d/R;v*=d/R;z*=R;l=R*l|0;p*=zzfxV;for(h=e+m+r+t+c|0;a<h;k[a++]
+  =f*p)++J%(100*F|0)||(f=q?1<q?2<q?3<q?Z(g**3):max(min(tan(g),1),-1):1-(2*g/d%2+2
+  )%2:1-4*abs(round(g/d)-g/d):Z(g),f=(l?1-B+B*Z(d*a/l):1)*(f<0?-1:1)*abs(f)**D*(a
+  <e?a/e:a<e+m?1-(a-e)/m*(1-w):a<e+m+r?w:a<h-c?(h-a-c)/t*w:0),f=c?f/2+(c>a?0:(a<h-c?1:(
+  h-a)/c)*k[a-c|0]/2/p):f,N?f=W=S*T+Q*(T=U)+P*(U=f)-Y*V-X*(V=W):0),x=(b+=u+=y)*cos(A*
+  // @ts-expect-error
+  H++),g+=x+x*E*Z(a**5),n&&++n>z&&(b+=v,C+=v,n=0),!l||++I%l||(b=C,u=G,n=n||1);p=zzfxX.
+  // @ts-expect-error
+  createBuffer(1,h,R);p.getChannelData(0).set(k);b=zzfxX.createBufferSource();
+  // @ts-expect-error
+  b.buffer=p;b.connect(zzfxX.destination);b.start()}
+  // #endregion
+
+  // #region Audio
+  // prettier-ignore
+  const audio = {
+    // enter: [2.2,,202,.02,,.05,,3.1,,-53,,,.12,,7.2,.5,.23,.56,.02,.38],
+    interactionClick: [3,,42,.01,.01,.02,3,2,,2,,,,,193,.6,,.53,.02],
+    pickup: [.2,,577,,.05,.09,,3.6,,,,,,,,,,.64,.03,,-1499],
+    levelUp: [.6,,599,.06,.11,.17,,1.2,-1,-5,254,.06,.1,.1,12,,,.86,.25,,-972],
+    enemyHit: [.3,,142,,.23,.5,1,,-2.6,-24,,,.09,,,,,.1,.06],
+    playerHit: [0.7,,480,.02,.04,.18,3,2.3,,,,,,.6,,.4,,.85,.01,,99],
+    // enemyHit: [.5,,86,.03,.02,.23,,1.9,,,,,.02,1.1,,.1,.03,.95,.03,.44]
+  }
   // #endregion
 
   // #region Utility functions
@@ -147,7 +184,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     /**
      * @param {string | CanvasGradient} style
      */
-    overlay(style = "#000000e5") {
+    overlay(style = "#000d") {
       fillStyle(style);
       ctx.fillRect(0, 0, width, height);
     },
@@ -369,6 +406,28 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @typedef {WeaponTypeBase<MagicOrbsWeaponLevel>} MagicOrbsWeapon
    */
 
+  let enemyHitSounds = 0;
+
+  /**
+   * @param {Enemy} enemy
+   * @param {number} damage
+   * @param {number} angle
+   */
+  const hitEnemy = (enemy, damage, angle, pushBack = 20) => {
+    enemy.health -= damage;
+    enemy.hitTick = 0.1;
+    if (pushBack) {
+      enemy.pushBackX = cos(angle) * pushBack;
+      enemy.pushBackY = sin(angle) * pushBack;
+    }
+
+    if (enemyHitSounds++ < 4) {
+      zzfx(...audio.enemyHit);
+    }
+
+    manager.damageDone += damage;
+  };
+
   /** @type {MagicOrbsWeapon} */
   const magicOrbs = {
     nam: "Orbs",
@@ -405,12 +464,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           const dis = distance(enemy.x, enemy.y, orbX, orbY);
 
           if (dis < radius / 2 + enemy.type.radius + 2) {
-            enemy.health -= damage;
-            enemy.hitTick = 0.1;
-            enemy.pushBackX = cos(angle) * 20;
-            enemy.pushBackY = sin(angle) * 20;
-
-            manager.damageDone += damage;
+            hitEnemy(enemy, damage, angle);
           }
         }
       }
@@ -492,12 +546,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
         if (angle + offset > coneStart && angle - offset < coneEnd) {
           if (distance - enemy.type.radius / 2 < area) {
-            enemy.health -= damage;
-            enemy.hitTick = 0.1;
-            enemy.pushBackX = cos(angle) * 25;
-            enemy.pushBackY = sin(angle) * 25;
-
-            manager.damageDone += damage;
+            hitEnemy(enemy, damage, angle);
           }
         }
       }
@@ -569,14 +618,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         const dis = distance(player.x, player.y, enemy.x, enemy.y);
 
         if (dis < area) {
-          enemy.health -= damage;
-          enemy.hitTick = 0.1;
-
           // TODO: Should this have push-back?
-          // enemy.pushBackX = cos(angle) * 20;
-          // enemy.pushBackY = sin(angle) * 20;
-
-          manager.damageDone += damage;
+          hitEnemy(enemy, damage, 0, 0);
         }
       }
     },
@@ -612,16 +655,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /** @typedef {ReturnType<typeof initializeWeapon>} Weapon */
 
   /**
-   * @param {number} increasePerLevel
-   * @returns {AttributeEnhancer}
-   */
-  const baseIncreaseWithLevel = (increasePerLevel) => () =>
-    player.lvl * increasePerLevel;
-
-  /**
    * @typedef PlayerType
    * @property {string} nam
-   * @property {WeaponType[]} weapons
+   * @property {WeaponType} weapon
    * @property {Record<keyof Player['attrs'], number>} attrs
    * @property {Partial<Record<keyof Player['attrs'], number>>} attrsWithLevel
    * @property {(x: number, y: number) => void} render
@@ -631,7 +667,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const playerTypes = [
     {
       nam: "Warrior",
-      weapons: [sword],
+      weapon: sword,
       attrs: {
         health: 50,
         spd: 45,
@@ -652,7 +688,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     },
     {
       nam: "Monk",
-      weapons: [barbedWire],
+      weapon: barbedWire,
       attrs: {
         health: 50,
         spd: 60,
@@ -673,7 +709,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     },
     {
       nam: "Magic Man",
-      weapons: [magicOrbs],
+      weapon: magicOrbs,
       attrs: {
         health: 50,
         spd: 45,
@@ -772,21 +808,21 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       nam: "Speed boost",
       desc: "+5% speed",
       use() {
-        player.attrs.spd.multiplier.push(0.05);
+        player.attrs.spd.multiplier += 0.05;
       },
     },
     {
       nam: "Speed base",
       desc: "+1 base speed",
       use() {
-        player.attrs.spd.base.push(1);
+        player.attrs.spd.base += 1;
       },
     },
     {
       nam: "Max health",
       desc: "+25 max health, +5 health",
       use() {
-        player.attrs.health.base.push(25);
+        player.attrs.health.base += 25;
         player.health += 5;
       },
     },
@@ -794,51 +830,48 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       nam: "Health drop",
       desc: "+1% health drop chance",
       use: () => {
-        player.attrs.healthDrop.base.push(0.01);
+        player.attrs.healthDrop.base += 0.01;
       },
     },
     {
       nam: "Regen",
       desc: "+0.05/s health regen",
-      use: () => player.attrs.healthRegen.base.push(0.05),
+      use: () => (player.attrs.healthRegen.base += 0.05),
     },
     {
       nam: "Regen boost",
       desc: "+10% health regen",
-      use: () => player.attrs.healthRegen.multiplier.push(0.1),
+      use: () => (player.attrs.healthRegen.multiplier += 0.1),
     },
     {
       nam: "Pickup range",
       desc: "+10 pickup range",
-      use: () => player.attrs.pickupDistance.base.push(10),
+      use: () => (player.attrs.pickupDistance.base += 10),
     },
     {
       nam: "Damage",
       desc: "+1 damage",
-      use: () => player.attrs.damage.base.push(1),
+      use: () => (player.attrs.damage.base += 1),
     },
     {
       nam: "Attack speed",
       desc: "+5% attack speed",
-      use: () => player.attrs.attackSpeed.base.push(-0.05),
+      use: () => (player.attrs.attackSpeed.base -= 0.05),
     },
     {
       nam: "Armor",
       desc: "+1 armor",
-      use: () => player.attrs.armor.base.push(1),
+      use: () => (player.attrs.armor.base += 1),
     },
     {
       nam: "Area",
       desc: "+10% area",
-      use: () => player.attrs.area.base.push(0.1),
+      use: () => (player.attrs.area.base += 0.1),
     },
     weaponUpgrade(magicOrbs),
     weaponUpgrade(sword),
     weaponUpgrade(barbedWire),
   ];
-
-  /** @typedef {number | (() => number)} AttributeEnhancer */
-  /** @typedef {{ base: AttributeEnhancer[]; multiplier: AttributeEnhancer[]; playerLevel: number; value: number; }} AttributeCache */
 
   /**
    * @template T
@@ -849,47 +882,15 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const fnOrV = (v) => (typeof v == "function" ? v() : v);
 
   /**
-   * @param {AttributeEnhancer[]} [base]
-   * @param {AttributeEnhancer[]} [multiplier]
+   * @param {number} [base=0]
+   * @param {number} [basePerLevel=0]
+   * @param {number} [multiplier=1]
    */
-  const createAttribute = (base = [], multiplier = []) => ({
-    // Base attribute value modifiers
-    /** @type {AttributeEnhancer[]} */
-    base: [...base],
-
-    // Multiplier attribute value modifiers
-    /** @type {AttributeEnhancer[]} */
-    multiplier: [...multiplier],
-
-    /** @type { AttributeCache | null} */
-    $cached: null,
-
+  const createAttribute = (base = 0, basePerLevel = 0, multiplier = 1) => ({
+    base,
+    multiplier,
     get val() {
-      if (
-        this.$cached?.base === this.base &&
-        this.$cached?.multiplier === this.multiplier &&
-        this.$cached?.playerLevel === player.lvl
-      ) {
-        return this.$cached.value;
-      }
-
-      /**
-       * @param {number} acc
-       * @param {AttributeEnhancer} v
-       * @returns {number}
-       */
-      const sum = (acc, v) => acc + fnOrV(v);
-
-      const value = this.base.reduce(sum, 0) * this.multiplier.reduce(sum, 1);
-
-      this.$cached = {
-        base: this.base,
-        multiplier: this.multiplier,
-        playerLevel: player.lvl,
-        value,
-      };
-
-      return value;
+      return (this.base + player.lvl * basePerLevel) * this.multiplier;
     },
   });
 
@@ -923,15 +924,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    */
 
   /**
-   * @param {AttributeEnhancer} base
-   * @param {number | undefined} withLevel
-   */
-  const joinAttrs = (base, withLevel) => [
-    base,
-    ...(withLevel ? [baseIncreaseWithLevel(withLevel)] : []),
-  ];
-
-  /**
    * @param {PlayerType} typ
    * @returns {Player}
    */
@@ -953,28 +945,26 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
     // Attribute values
     attrs: {
-      damage: createAttribute(
-        joinAttrs(typ.attrs.damage, typ.attrsWithLevel.damage),
-      ),
-      attackSpeed: createAttribute(
-        joinAttrs(typ.attrs.attackSpeed, typ.attrsWithLevel.attackSpeed),
-      ),
-      area: createAttribute(joinAttrs(typ.attrs.area, typ.attrsWithLevel.area)),
-      spd: createAttribute(joinAttrs(typ.attrs.spd, typ.attrsWithLevel.spd)),
-      health: createAttribute(
-        joinAttrs(typ.attrs.health, typ.attrsWithLevel.health),
-      ),
+      health: createAttribute(typ.attrs.health, typ.attrsWithLevel.health),
       healthRegen: createAttribute(
-        joinAttrs(typ.attrs.healthRegen, typ.attrsWithLevel.healthRegen),
+        typ.attrs.healthRegen,
+        typ.attrsWithLevel.healthRegen,
       ),
-      armor: createAttribute(
-        joinAttrs(typ.attrs.armor, typ.attrsWithLevel.armor),
+      armor: createAttribute(typ.attrs.armor, typ.attrsWithLevel.armor),
+      damage: createAttribute(typ.attrs.damage, typ.attrsWithLevel.damage),
+      attackSpeed: createAttribute(
+        typ.attrs.attackSpeed,
+        typ.attrsWithLevel.attackSpeed,
       ),
+      area: createAttribute(typ.attrs.area, typ.attrsWithLevel.area),
+      spd: createAttribute(typ.attrs.spd, typ.attrsWithLevel.spd),
       pickupDistance: createAttribute(
-        joinAttrs(typ.attrs.pickupDistance, typ.attrsWithLevel.pickupDistance),
+        typ.attrs.pickupDistance,
+        typ.attrsWithLevel.pickupDistance,
       ),
       healthDrop: createAttribute(
-        joinAttrs(typ.attrs.healthDrop, typ.attrsWithLevel.healthDrop),
+        typ.attrs.healthDrop,
+        typ.attrsWithLevel.healthDrop,
       ),
     },
 
@@ -982,7 +972,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     upgrades: [],
 
     // Weapons
-    weapons: typ.weapons.map((w) => initializeWeapon(w)),
+    weapons: [initializeWeapon(typ.weapon)],
   });
 
   const player = createPlayer(playerTypes[0]);
@@ -1754,6 +1744,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           player.health -= max(0, type.damage - player.attrs.armor.val);
           player.lastDamagedTick = 0.5;
           enemy.damageTick = type.damageTick;
+          zzfx(...audio.playerHit);
         }
 
         // Move towards player
@@ -1833,10 +1824,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const managerSelectionTick = () => {
     if (justPressedInput.up && manager.selIndex > 0) {
       manager.selIndex--;
+      zzfx(...audio.interactionClick);
     }
 
     if (justPressedInput.down && manager.selIndex < manager.selLength) {
       manager.selIndex++;
+      zzfx(...audio.interactionClick);
     }
   };
 
@@ -1898,6 +1891,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           manager.selLength = playerTypes.length - 1;
           assignPlayer(playerTypes[0]);
           manager.gameState = MANAGER_STATES.PICKING_PLAYER;
+
+          zzfx(...audio.interactionClick);
         }
 
         break;
@@ -1912,6 +1907,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
         if (justPressedInput.enter) {
           startNewGame(playerTypes[manager.selIndex]);
+          zzfx(...audio.interactionClick);
         }
 
         break;
@@ -1924,6 +1920,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           upgrade.use();
           player.upgrades.push(upgrade);
           manager.gameState = MANAGER_STATES.IN_PROGRESS;
+          // TODO: Specific sound?
+          zzfx(...audio.interactionClick);
         }
 
         break;
@@ -1947,6 +1945,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {number} deltaTime
    */
   const playerTick = (deltaTime) => {
+    enemyHitSounds = 0;
+
     let moveX = 0;
     let moveY = 0;
 
@@ -1997,6 +1997,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         manager.selIndex = 0;
         manager.selLength = manager.upgrades.length - 1;
       }
+
+      zzfx(...audio.levelUp);
 
       player.health += 5;
     }
@@ -2049,6 +2051,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
         player.experience += pickup.experience ?? 0;
         player.lastPickupTick = 0.1;
+
+        zzfx(...audio.pickup);
 
         pickupsToRemove.push(index);
       } else if (dis < player.attrs.pickupDistance.val) {
