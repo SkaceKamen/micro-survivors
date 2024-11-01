@@ -1,4 +1,14 @@
 // @ts-check
+
+/*
+  TODO:
+   - mid game is boring, more powerful enemies should be introduced sooner
+   - whole game could be shorter?
+   - verify that weapon upgrades work correctly (proper limit, correct description)
+   - push enemies back when level up to give player time to start moving again?
+
+*/
+
 function microSurvivors(target = document.body, width = 400, height = 400) {
   // #region Constants
   const font = "monospace";
@@ -1028,7 +1038,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {WithOptional<EnemyType, 'damageTick' | 'radius'>} type
    * @returns {EnemyType}
    */
-  const defineEnemy = (type) => ({ ...type, damageTick: 1, radius: 10 });
+  const defineEnemy = (type) => ({ radius: 5, damageTick: 1, ...type });
 
   /**
    * @param {string[]} colors
@@ -1048,11 +1058,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   /**
    * @param {string[]} colors
-   * @param {number} size
+   * @param {number} radius
    * @returns {(x: number, y: number, hit: string | undefined) => void}
    */
-  const circleSprite = (colors, size) => (x, y, hit) =>
-    colors.map((color, i) => draw.circle(x + i, y + i, size, hit ?? color));
+  const circleSprite = (colors, radius) => (x, y, hit) =>
+    colors.map((color, i) => draw.circle(x + i, y + i, radius, hit ?? color));
 
   const boxLevel1 = defineEnemy({
     health: 10,
@@ -1154,8 +1164,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     experience: 300,
     boss: true,
     pushBackResistance: 80,
-    radius: 16,
-    render: circleSprite([enemyStage2Color], 8),
+    radius: 20,
+    render: circleSprite([enemyStage2Color], 10),
   });
 
   const finalBoss = defineEnemy({
@@ -1165,7 +1175,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     experience: 0,
     boss: true,
     pushBackResistance: 1000,
-    radius: 50,
+    radius: 25,
     render(x, y, hit) {
       draw.circle(x, y, 25, hit ?? enemyStage2Color);
       draw.box(x, y, 25, hit ?? enemyStage3Color);
@@ -1759,7 +1769,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       // When ready to attack
       if (enemy.damageTick <= 0) {
         // Damage player when close
-        if (distance < enemy.type.radius - 2) {
+        if (distance < 5 + enemy.type.radius - 1) {
           player.health -= max(0, type.damage - player.attrs.armor.val);
           player.lastDamagedTick = 0.5;
           enemy.damageTick = type.damageTick;
