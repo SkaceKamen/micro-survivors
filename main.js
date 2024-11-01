@@ -6,7 +6,11 @@
    - whole game could be shorter?
    - verify that weapon upgrades work correctly (proper limit, correct description)
    - push enemies back when level up to give player time to start moving again?
-
+   - rect wave is not spaced properly
+   - first wave should have more HP
+   - sword less damage?
+   - enemies should do a bit less damage
+   NOTE: lvl 37 at 7:58
 */
 
 function microSurvivors(target = document.body, width = 400, height = 400) {
@@ -29,6 +33,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     PI,
     max,
     tan,
+    sign,
   } = Math;
   const PI2 = PI * 2;
   const pressEnter = "Press ENTER to ";
@@ -127,7 +132,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   /**
    * @template A
-   * @param {Array<{val: A; weight: number}>} array
+   * @param {Array<{val: A; w: number}>} array
    * @param {number} count
    * @returns {A[]}
    */
@@ -143,24 +148,17 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   /**
    * @template T
-   * @param {Array<{ weight: number; val: T }>} arr
+   * @param {Array<{ w: number; val: T }>} arr
    * @returns
    */
   const weightedIndexChoice = (arr) => {
-    const totalWeight = arr.map((v) => v.weight).reduce((x, y) => x + y);
+    const totalWeight = arr.map((v) => v.w).reduce((x, y) => x + y);
     const val = random() * totalWeight;
     for (let i = 0, cur = 0; ; i++) {
-      cur += arr[i].weight;
+      cur += arr[i].w;
       if (val <= cur) return i;
     }
   };
-
-  /**
-   * @template A
-   * @param {A[]} a
-   * @returns {A}
-   */
-  const pickRandom = (a) => a[round(random() * (a.length - 1))];
 
   /**
    * @param {number} a
@@ -168,14 +166,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @returns {number}
    */
   const optionalStatsDiff = (a, b) => (b ? b - a : a);
-
-  /**
-   * @template T
-   * @param {(() => T) | T} v
-   * @returns {T}
-   */
-  // @ts-expect-error v() is for some reason throwing error, fix later
-  const fnOrV = (v) => (typeof v == "function" ? v() : v);
 
   // #endregion
 
@@ -244,6 +234,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       ctx.fillText(text, x, y);
     },
     /**
+     * @param {number} y
+     * @param {string} text
+     */
+    titleText(y, text) {
+      draw.text(w2, y, text, white, center, top);
+    },
+    /**
      * @param {number} x
      * @param {number} y
      * @param {number} radius
@@ -258,9 +255,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     /**
      * @param {number} value
      */
-    setGlobalAlpha(value) {
-      ctx.globalAlpha = value;
-    },
+    setGlobalAlpha: (value) => (ctx.globalAlpha = value),
   };
 
   /**
@@ -343,8 +338,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     "r": false,
     "e": false,
     "p": false,
-    targetX: 0,
-    targetY: 0,
+    aimAtX: 0,
+    aimAtY: 0,
   };
 
   /** @type {Partial<Record<keyof input, boolean>>} */
@@ -367,8 +362,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   onkeyup = processKeyEvent(false);
   onmousemove = (event) => {
     const rect = canvas.getBoundingClientRect();
-    input.targetX = event.clientX - rect.left;
-    input.targetY = event.clientY - rect.top;
+    input.aimAtX = event.clientX - rect.left;
+    input.aimAtY = event.clientY - rect.top;
   };
 
   // #endregion
@@ -406,8 +401,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     enemy.health -= damage;
     enemy.hitTick = 0.1;
     if (pushBack) {
-      enemy.pushBackX = cos(angle) * pushBack;
-      enemy.pushBackY = sin(angle) * pushBack;
+      enemy.pushBack = [cos(angle) * pushBack, sin(angle) * pushBack];
     }
 
     if (enemyHitSounds++ < 4) {
@@ -489,7 +483,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         for (const enemy of enemies) {
           const dis = distance(enemy.x, enemy.y, orbX, orbY);
 
-          if (dis < radius / 2 + enemy.type.radius + 2) {
+          if (dis < radius / 2 + (enemy.typ.radius ?? 5) + 2) {
             hitEnemy(enemy, damage, angle);
           }
         }
@@ -518,7 +512,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /**
    * @typedef MeleeWeaponLevel
    * @property {number} damage
-   * @property {number} angle
+   * @property {number} angleRad
    * @property {number} area
    * @property {number} damageRate
    */
@@ -532,19 +526,19 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     nam: "Sword",
     desc: "melee weapon",
     levels: fillLevels([
-      { damage: 8, angle: PI / 4, area: 80, damageRate: 0.5 },
+      { damage: 8, angleRad: PI / 4, area: 80, damageRate: 0.5 },
       { damage: 13 },
-      { angle: (PI / 4) * 1.2, area: 90 },
+      { angleRad: (PI / 4) * 1.2, area: 90 },
       { damage: 18 },
       { damage: 23 },
-      { damage: 28, angle: (PI / 4) * 1.5 },
-      { damage: 33, angle: (PI / 4) * 1.7, area: 120 },
+      { damage: 28, angleRad: (PI / 4) * 1.5 },
+      { damage: 33, angleRad: (PI / 4) * 1.7, area: 120 },
     ]),
     tick(_, attrs) {
       const damage = attrs.damage + player.attrs.damage.val;
       const area = attrs.area * player.attrs.area.val;
 
-      const coneA2 = attrs.angle / 2;
+      const coneA2 = attrs.angleRad / 2;
       const coneStart = player.meleeDirection - coneA2;
       const coneEnd = player.meleeDirection + coneA2;
 
@@ -553,10 +547,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         const dy = enemy.y - player.y;
         const angle = atan2(dy, dx);
         const distance = hypot(dx, dy);
-        const offset = atan2(enemy.type.radius / 2, distance);
+        const offset = atan2((enemy.typ.radius ?? 5) / 2, distance);
 
         if (angle + offset > coneStart && angle - offset < coneEnd) {
-          if (distance - enemy.type.radius / 2 < area) {
+          if (distance - (enemy.typ.radius ?? 5) / 2 < area) {
             hitEnemy(enemy, damage, angle);
           }
         }
@@ -569,7 +563,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       const alpha = delta * 0.2;
 
       if (alpha > 0) {
-        const coneA2 = attrs.angle / 2;
+        const coneA2 = attrs.angleRad / 2;
 
         fillStyle(`rgba(255,255,255,${alpha})`);
         ctx.beginPath();
@@ -594,7 +588,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     stats: (attrs, attrs1) => [
       [`damage`, optionalStatsDiff(attrs.damage, attrs1?.damage)],
       [`range`, optionalStatsDiff(attrs.area, attrs1?.area)],
-      [`angle`, optionalStatsDiff(attrs.angle, attrs1?.angle), fAngle],
+      [`angle`, optionalStatsDiff(attrs.angleRad, attrs1?.angleRad), fAngle],
     ],
   };
 
@@ -1033,12 +1027,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @typedef {Partial<Pick<T, K>> & Omit<T, K>} WithOptional<T, K>
    */
 
-  /** @typedef {{ health: number; spd: number; damage: number; damageTick: number; experience: number; boss?: boolean; pushBackResistance?: number; radius: number; render: (x: number, y: number, hit: string | undefined) => void}} EnemyType */
-  /**
-   * @param {WithOptional<EnemyType, 'damageTick' | 'radius'>} type
-   * @returns {EnemyType}
-   */
-  const defineEnemy = (type) => ({ radius: 5, damageTick: 1, ...type });
+  /** @typedef {{ health: number; spd: number; damage: number; experience: number; boss?: boolean; pushBackResistance?: number; radius?: number; render: (x: number, y: number, hit: string | undefined) => void}} EnemyType */
 
   /**
    * @param {string[]} colors
@@ -1046,7 +1035,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @returns {(x: number, y: number, hit: string | undefined) => void}
    */
   const boxSprite = (colors, size) => (x, y, hit) =>
-    colors.map((color, i) => draw.box(x + i, y + i, size, hit ?? color));
+    colors.map((color, i) =>
+      draw.box(x + i * 2, y + i * 2, size, hit ?? color),
+    );
 
   /**
    * @param {string[]} colors
@@ -1054,7 +1045,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @returns {(x: number, y: number, hit: string | undefined) => void}
    */
   const triangleSprite = (colors, size) => (x, y, hit) =>
-    colors.map((color, i) => draw.triangle(x + i, y + i, size, hit ?? color));
+    colors.map((color, i) =>
+      draw.triangle(x + i * 2, y + i * 2, size, hit ?? color),
+    );
 
   /**
    * @param {string[]} colors
@@ -1062,116 +1055,149 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @returns {(x: number, y: number, hit: string | undefined) => void}
    */
   const circleSprite = (colors, radius) => (x, y, hit) =>
-    colors.map((color, i) => draw.circle(x + i, y + i, radius, hit ?? color));
+    colors.map((color, i) =>
+      draw.circle(x + i * 2, y + i * 2, radius, hit ?? color),
+    );
 
-  const boxLevel1 = defineEnemy({
+  /** @type {EnemyType} */
+  const boxLevel1 = {
     health: 10,
     spd: 26,
-    damage: 10,
+    damage: 8,
     experience: 1,
     render: boxSprite([gray], 10),
-  });
+  };
 
-  const boxLevel2 = defineEnemy({
+  /** @type {EnemyType} */
+  const boxLevel2 = {
     health: 50,
     spd: 26,
-    damage: 20,
+    damage: 12,
     experience: 2,
     render: boxSprite([gray, enemyStage2Color], 10),
-  });
+  };
 
-  const boxLevel3 = defineEnemy({
+  /** @type {EnemyType} */
+  const boxLevel3 = {
     health: 100,
     spd: 30,
-    damage: 30,
+    damage: 14,
     experience: 3,
     render: boxSprite([gray, enemyStage2Color, "#4a4"], 10),
-  });
+  };
 
-  const boxBoss = defineEnemy({
+  /** @type {EnemyType} */
+  const boxBoss = {
     health: 1000,
     spd: 30,
-    damage: 30,
+    damage: 15,
     experience: 100,
     radius: 20,
     render: boxSprite([enemyStage2Color], 20),
     boss: true,
-  });
+  };
 
-  const triangleLevel1 = defineEnemy({
+  /** @type {EnemyType} */
+  const boxTank = {
+    health: 80,
+    spd: 10,
+    damage: 8,
+    experience: 1,
+    render: boxSprite([darkGray], 10),
+  };
+
+  /** @type {EnemyType} */
+  const triangleLevel1 = {
     health: 20,
     spd: 35,
-    damage: 10,
+    damage: 8,
     experience: 2,
     render: triangleSprite([darkGray], 10),
-  });
+  };
 
-  const triangleLevel2 = defineEnemy({
+  /** @type {EnemyType} */
+  const triangleLevel2 = {
     health: 40,
     spd: 35,
-    damage: 20,
+    damage: 12,
     experience: 3,
     render: triangleSprite([darkGray, enemyStage3Color], 10),
-  });
+  };
 
-  const triangleLevel3 = defineEnemy({
+  /** @type {EnemyType} */
+  const triangleLevel3 = {
     health: 60,
     spd: 35,
-    damage: 40,
+    damage: 14,
     experience: 4,
     render: triangleSprite([darkGray, enemyStage3Color, "#966"], 10),
-  });
+  };
 
-  const triangleBoss = defineEnemy({
+  /** @type {EnemyType} */
+  const triangleTank = {
+    health: 150,
+    spd: 20,
+    damage: 10,
+    experience: 4,
+    render: triangleSprite([darkGray, darkGray, darkGray], 10),
+  };
+
+  /** @type {EnemyType} */
+  const triangleBoss = {
     health: 3000,
     spd: 35,
-    damage: 40,
+    damage: 20,
     experience: 200,
     boss: true,
     pushBackResistance: 80,
     radius: 20,
     render: triangleSprite([enemyStage2Color], 20),
-  });
+  };
 
-  const circleLevel1 = defineEnemy({
+  /** @type {EnemyType} */
+  const circleLevel1 = {
     health: 10,
     spd: 40,
-    damage: 10,
+    damage: 8,
     experience: 3,
     render: circleSprite([darkGray], 5),
-  });
+  };
 
-  const circleLevel2 = defineEnemy({
+  /** @type {EnemyType} */
+  const circleLevel2 = {
     health: 20,
     spd: 40,
-    damage: 20,
+    damage: 12,
     experience: 4,
     render: circleSprite([darkGray, enemyStage3Color], 5),
-  });
+  };
 
-  const circleLevel3 = defineEnemy({
+  /** @type {EnemyType} */
+  const circleLevel3 = {
     health: 50,
     spd: 40,
-    damage: 40,
+    damage: 14,
     experience: 5,
     render: circleSprite([darkGray, enemyStage3Color, "#4ca"], 5),
-  });
+  };
 
-  const circleBoss = defineEnemy({
+  /** @type {EnemyType} */
+  const circleBoss = {
     health: 5000,
     spd: 40,
-    damage: 50,
+    damage: 20,
     experience: 300,
     boss: true,
     pushBackResistance: 80,
     radius: 20,
     render: circleSprite([enemyStage2Color], 10),
-  });
+  };
 
-  const finalBoss = defineEnemy({
+  /** @type {EnemyType} */
+  const finalBoss = {
     health: 8000,
     spd: 60,
-    damage: 100,
+    damage: 20,
     experience: 0,
     boss: true,
     pushBackResistance: 1000,
@@ -1181,7 +1207,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       draw.box(x, y, 25, hit ?? enemyStage3Color);
       draw.triangle(x, y, 23, hit ?? enemyStage2Color);
     },
-  });
+  };
 
   // #endregion
 
@@ -1199,8 +1225,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   /** @param {EnemyType} enemy */
   const rectangleWave = (enemy) => () => {
-    const xRange = range(player.x - w2, player.x + w2, enemy.radius * 2);
-    const yRange = range(player.y - h2, player.y + h2, enemy.radius * 2);
+    const radius = (enemy.radius ?? 5) * 2;
+
+    const xRange = range(player.x - w2, player.x + w2, radius + 4);
+    const yRange = range(player.y - h2, player.y + h2, radius + 4);
 
     xRange.map((x) => pushEnemy(x, player.y - h2, enemy));
     xRange.map((x) => pushEnemy(x, player.y + h2, enemy));
@@ -1221,64 +1249,59 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /**
    * @typedef SpawnRate
    * @property {EnemyType[]} enemies
-   * @property {number} spawnRate
+   * @property {number} [spawnRate]
    * @property {EnemyType} [boss]
    * @property {() => void} [wave]
    */
 
   /** @type {SpawnRate[]} */
   const spawnRates = [
-    { enemies: [boxLevel1], spawnRate: 0.2 },
-    { enemies: [boxLevel1, triangleLevel1], spawnRate: 0.2 },
-    { enemies: [boxLevel1, triangleLevel1], spawnRate: 0.2 },
-    { enemies: [triangleLevel1], spawnRate: 0.2, boss: boxBoss },
-    { enemies: [triangleLevel1, circleLevel1], spawnRate: 0.2 },
-    { enemies: [triangleLevel1, circleLevel1], spawnRate: 0.2 },
-    { enemies: [boxLevel2], spawnRate: 0.2, wave: rectangleWave(boxLevel2) },
-    { enemies: [boxLevel2, triangleLevel2, circleLevel1], spawnRate: 0.2 },
+    { enemies: [boxLevel1] },
+    { enemies: [boxLevel1, triangleLevel1] },
+    { enemies: [triangleLevel1, circleLevel1], boss: boxBoss },
+    { enemies: [triangleLevel1, circleLevel1] },
+    { enemies: [boxLevel2], wave: rectangleWave(boxTank) },
+    { enemies: [boxLevel2, triangleLevel2, circleLevel1] },
     {
       enemies: [triangleLevel2, circleLevel1],
       boss: triangleBoss,
-      spawnRate: 0.2,
     },
-    { enemies: [triangleLevel2, circleLevel2, boxLevel2], spawnRate: 0.2 },
+    { enemies: [boxLevel2, triangleLevel2, circleLevel2] },
     {
       enemies: [circleLevel2, boxLevel3],
-      spawnRate: 0.2,
       wave: circleWave(circleLevel2),
     },
-    { enemies: [boxLevel3, triangleLevel3], spawnRate: 0.2 },
-    { enemies: [boxLevel3, triangleLevel3], spawnRate: 0.2 },
-    { enemies: [boxLevel3, triangleLevel3, circleLevel3], spawnRate: 0.2 },
-    { enemies: [boxLevel3, triangleLevel3], boss: circleBoss, spawnRate: 0.2 },
+    { enemies: [boxLevel3, triangleLevel3] },
+    { enemies: [boxLevel3, triangleLevel3] },
+    { enemies: [boxLevel3, triangleLevel3, circleLevel3] },
+    { enemies: [boxLevel3, triangleLevel3], boss: circleBoss },
     {
       enemies: [boxLevel3, triangleLevel3, circleLevel3],
       spawnRate: 0.1,
-      wave: rectangleWave(triangleLevel3),
+      wave: rectangleWave(triangleTank),
     },
-    { enemies: [], spawnRate: 0, boss: finalBoss },
+    { enemies: [], boss: finalBoss },
   ];
 
-  const bossAt = 600;
-  const waveTime = bossAt / (spawnRates.length - 1);
+  const finalBossAt = 540;
+  const waveTime = finalBossAt / (spawnRates.length - 1);
 
   // #endregion
 
   /**
    * @param {number} x
    * @param {number} y
-   * @param {EnemyType} type
+   * @param {EnemyType} typ
    */
-  const initializeEnemy = (x, y, type) => ({
+  const initializeEnemy = (x, y, typ) => ({
     x,
     y,
-    type,
-    health: type.health,
+    typ,
+    health: typ.health,
     damageTick: 0,
-    pushBackX: 0,
-    pushBackY: 0,
+    pushBack: [0, 0],
     hitTick: 0,
-    boss: !!type.boss,
+    boss: !!typ.boss,
   });
 
   /**
@@ -1336,7 +1359,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   const renderEnemies = () => {
     for (const enemy of enemies) {
-      const type = enemy.type;
+      const type = enemy.typ;
       type.render(enemy.x, enemy.y, enemy.hitTick > 0 ? white : undefined);
 
       if (type.boss) {
@@ -1571,12 +1594,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     },
     [MANAGER_STATES.PAUSED]() {
       draw.overlay();
-      draw.text(w2, 40, "PAUSED", white, center, middle);
+      draw.titleText(40, "PAUSED");
       renderPlayerStatsUi(20, 80, width - 40);
     },
     [MANAGER_STATES.PICKING_PLAYER]() {
       draw.overlay();
-      draw.text(w2, 10, "PICK CLASS", white, center, top);
+      draw.titleText(10, "PICK CLASS");
 
       renderSelectable(
         20,
@@ -1595,7 +1618,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     },
     [MANAGER_STATES.PICKING_UPGRADE]() {
       draw.overlay();
-      draw.text(w2, 10, "LEVEL UP", white, center, top);
+      draw.titleText(10, "LEVEL UP");
 
       renderSelectable(
         20,
@@ -1608,7 +1631,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           ).length;
 
           draw.text(x + 5, y + 5, upgrade.nam, white);
-          draw.text(x + 5, y + 22, fnOrV(upgrade.desc), lightGray);
+          draw.text(
+            x + 5,
+            y + 22,
+            typeof upgrade.desc === "string" ? upgrade.desc : upgrade.desc(),
+            lightGray,
+          );
 
           draw.text(
             x + width - 50,
@@ -1717,6 +1745,22 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   };
 
   /**
+   *
+   * @param {number} x
+   * @param {number} y
+   * @param {number} [health]
+   * @param {number} [experience]
+   * @returns
+   */
+  const addPickup = (x, y, health, experience) =>
+    pickups.push({
+      x,
+      y,
+      experience,
+      health,
+    });
+
+  /**
    * @param {number} deltaTime
    */
   const enemiesTick = (deltaTime) => {
@@ -1724,21 +1768,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     let enemiesToRemove = [];
 
     for (const enemy of enemies) {
-      const type = enemy.type;
+      const type = enemy.typ;
 
       if (enemy.health <= 0) {
-        pickups.push({
-          x: enemy.x,
-          y: enemy.y,
-          experience: type.experience,
-        });
+        addPickup(enemy.x, enemy.y, 0, type.experience);
 
         if (random() < player.attrs.healthDrop.val) {
-          pickups.push({
-            x: enemy.x - 5 + random() * 10,
-            y: enemy.y - 5 + random() * 10,
-            health: 2,
-          });
+          addPickup(enemy.x, enemy.y, 5);
         }
 
         manager.kills += 1;
@@ -1752,8 +1788,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         enemy.hitTick -= deltaTime;
       }
 
-      let velocityX = enemy.pushBackX * deltaTime;
-      let velocityY = enemy.pushBackY * deltaTime;
+      let velocityX = enemy.pushBack[0] * deltaTime;
+      let velocityY = enemy.pushBack[1] * deltaTime;
 
       const dx = player.x - enemy.x;
       const dy = player.y - enemy.y;
@@ -1769,10 +1805,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       // When ready to attack
       if (enemy.damageTick <= 0) {
         // Damage player when close
-        if (distance < 5 + enemy.type.radius - 1) {
+        if (distance < 5 + (enemy.typ.radius ?? 5) - 1) {
           player.health -= max(0, type.damage - player.attrs.armor.val);
           player.lastDamagedTick = 0.5;
-          enemy.damageTick = type.damageTick;
+          enemy.damageTick = 1;
           zzfx(...audio.playerHit);
         }
 
@@ -1790,27 +1826,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       enemy.y += velocityY;
 
       // Process push-back
-      let diff =
-        (enemy.pushBackX > 0 ? -1 : 1) *
-        deltaTime *
-        (type.pushBackResistance ?? 20);
-
-      if (abs(diff) > abs(enemy.pushBackX)) {
-        enemy.pushBackX = 0;
-      } else {
-        enemy.pushBackX += diff;
-      }
-
-      diff =
-        (enemy.pushBackY > 0 ? -1 : 1) *
-        deltaTime *
-        (type.pushBackResistance ?? 20);
-
-      if (abs(diff) > abs(enemy.pushBackY)) {
-        enemy.pushBackY = 0;
-      } else {
-        enemy.pushBackY += diff;
-      }
+      enemy.pushBack = enemy.pushBack.map((value) => {
+        let diff = -sign(value) * deltaTime * (type.pushBackResistance ?? 20);
+        return abs(diff) > abs(value) ? 0 : value + diff;
+      });
 
       index++;
     }
@@ -1862,6 +1881,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     }
   };
 
+  let spawnTick = 0;
+
   /**
    * @param {number} deltaTime
    */
@@ -1881,7 +1902,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         const spawnRateIndex = floor(manager.gameRuntime / waveTime);
         const spawnRate = spawnRates[spawnRateIndex];
 
-        if (manager.gameRuntime > bossAt && enemies.length === 0) {
+        if (manager.gameRuntime > finalBossAt && enemies.length === 0) {
           manager.gameState = MANAGER_STATES.WON;
         }
 
@@ -1896,14 +1917,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
             spawnRate.wave?.();
           }
 
-          while (
-            spawnRate.spawnRate &&
-            manager.spawnTimeout > spawnRate.spawnRate
-          ) {
+          const rate = spawnRate.spawnRate ?? 0.2;
+          while (rate && manager.spawnTimeout > rate) {
             if (spawnRate.enemies.length > 0) {
-              spawnEnemy(pickRandom(spawnRate.enemies));
+              spawnEnemy(
+                spawnRate.enemies[spawnTick++ % spawnRate.enemies.length],
+              );
             }
-            manager.spawnTimeout -= spawnRate.spawnRate;
+            manager.spawnTimeout -= rate;
           }
 
           manager.spawnTimeout += deltaTime;
@@ -1986,7 +2007,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       player.y += (moveY / moveD) * speed;
     }
 
-    player.meleeDirection = atan2(input.targetY - w2, input.targetX - h2);
+    player.meleeDirection = atan2(input.aimAtY - w2, input.aimAtX - h2);
 
     if (player.experience >= player.nextLevelExperience) {
       player.lvl += 1;
@@ -2006,7 +2027,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         })
         .map((u) => ({
           val: u,
-          weight: u.wght?.() ?? baseWeight,
+          w: u.wght?.() ?? baseWeight,
         }));
 
       manager.upgrades = weightedPickItems(availableUpgrades, 3);
