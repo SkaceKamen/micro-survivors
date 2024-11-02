@@ -452,7 +452,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const eachOrb = (attrs, tick, fn) => {
     const area = attrs.area;
     const baseAngle =
-      tick * (attrs.rotationSpeed * player.attrs.attackSpeed.val);
+      tick * (attrs.rotationSpeed * (2 - player.attrs.attackSpeed.val));
     const anglePerOrb = PI2 / attrs.orbs;
 
     for (let i = 0; i < attrs.orbs; i++) {
@@ -566,12 +566,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     },
     render(weapon, attrs) {
       const rate = attrs.damageRate * player.attrs.attackSpeed.val;
-      const area = attrs.area * player.attrs.area.val;
+      const area = attrs.area;
       const delta = weapon.damageTick / rate;
       const alpha = delta * 0.2;
 
       if (alpha > 0) {
-        const coneA2 = attrs.angleRad / 2;
+        const coneA2 = (attrs.angleRad / 2) * player.attrs.area.val;
 
         fillStyle(`rgba(255,255,255,${alpha})`);
         ctx.beginPath();
