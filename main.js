@@ -1,13 +1,5 @@
 // @ts-check
 
-/*
-  TODO:
-   - verify that weapon upgrades work correctly (proper limit, correct description)
-   - push enemies back when level up to give player time to start moving again?
-   - sword less damage?
-   NOTE: lvl 37 at 7:58
-*/
-
 function microSurvivors(target = document.body, width = 400, height = 400) {
   // #region Constants
   const font = "monospace";
