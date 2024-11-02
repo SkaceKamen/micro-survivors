@@ -367,6 +367,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     input.aimAtX = event.clientX - rect.left;
     input.aimAtY = event.clientY - rect.top;
   };
+  onblur = () => {
+    if (manager.gameState === MANAGER_STATES.IN_PROGRESS) {
+      manager.gameState = MANAGER_STATES.PAUSED;
+    }
+  };
 
   // #endregion
 
