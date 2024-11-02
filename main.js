@@ -1642,7 +1642,15 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       draw.overlay();
       draw.text(w2, h2 - 40, "MICRO", white, center, "bottom", 68);
       draw.text(w2, h2 - 40, "SURVIVORS", white, center, top, 38);
-      draw.text(w2, height - 5, "by Kamen", lightGray, center, "bottom", 10);
+      draw.text(
+        w2,
+        height - 5,
+        "by SkaceKamen",
+        lightGray,
+        center,
+        "bottom",
+        10,
+      );
 
       draw.setGlobalAlpha(0.75 + cos((performance.now() / 1000) * 5) * 0.25);
       draw.text(w2, h2 + 50, pressEnterToStart, white, center);
