@@ -1468,10 +1468,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {number} y
    * @param {number} w
    */
-  const renderPlayerStatsUi = (x, y, w) => {
-    const stats = getPlayerStats(player);
-    renderStatsTable(x, y, w, height - y - 40, stats);
-  };
+  const renderPlayerStatsUi = (x, y, w) =>
+    renderStatsTable(x, y, w, height - y - 40, getPlayerStats(player));
 
   /**
    * @param {number} x
@@ -1547,7 +1545,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {number} itemHeight
    * @param {(x: number, y: number, item: T) => void} renderItem
    * @param {T[]} items
-   * @returns
    */
   const renderSelectable = (x, y, itemWidth, itemHeight, renderItem, items) => {
     for (let i = 0; i < items.length; i++) {
@@ -1610,8 +1607,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         playerTypes,
       );
 
-      const stats = getPlayerStats(player, true);
-      renderStatsTable(140, 30, width - 140 - 20, height - 60, stats, false);
+      renderStatsTable(
+        140,
+        30,
+        width - 140 - 20,
+        height - 60,
+        getPlayerStats(player, true),
+        false,
+      );
     },
     [MANAGER_STATES.PICKING_UPGRADE]() {
       drawOverlay();
@@ -1789,9 +1792,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         continue;
       }
 
-      if (enemy.hitTick > 0) {
-        enemy.hitTick -= deltaTime;
-      }
+      enemy.hitTick -= deltaTime;
 
       let velocityX = enemy.pushBack[0] * deltaTime;
       let velocityY = enemy.pushBack[1] * deltaTime;
@@ -1923,12 +1924,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           }
 
           const rate = spawnRate.spawnRate ?? 0.2;
-          while (rate && manager.spawnTimeout > rate) {
-            if (spawnRate.enemies.length > 0) {
-              spawnEnemy(
-                spawnRate.enemies[spawnTick++ % spawnRate.enemies.length],
-              );
-            }
+          if (spawnRate.enemies.length > 0 && manager.spawnTimeout > rate) {
+            spawnEnemy(
+              spawnRate.enemies[spawnTick++ % spawnRate.enemies.length],
+            );
+
             manager.spawnTimeout -= rate;
           }
 
