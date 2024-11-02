@@ -354,6 +354,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const processKeyEvent = (state) => (event) => {
     const mapped = inputMapping[event.which];
     if (mapped) {
+      event.preventDefault();
       // @ts-expect-error mapped is a valid key
       input[mapped] = state;
       justPressedInput[mapped] = state;
