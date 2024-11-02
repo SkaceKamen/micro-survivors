@@ -2,14 +2,9 @@
 
 /*
   TODO:
-   - mid game is boring, more powerful enemies should be introduced sooner
-   - whole game could be shorter?
    - verify that weapon upgrades work correctly (proper limit, correct description)
    - push enemies back when level up to give player time to start moving again?
-   - rect wave is not spaced properly
-   - first wave should have more HP
    - sword less damage?
-   - enemies should do a bit less damage
    NOTE: lvl 37 at 7:58
 */
 
@@ -288,6 +283,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         x += rowWidth;
       }
     }
+
+    return y;
   };
 
   /**
@@ -498,7 +495,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     },
     stats: (attrs, attrs1) => [
       [`damage`, optionalStatsDiff(attrs.damage, attrs1?.damage)],
-      [`range`, optionalStatsDiff(attrs.area, attrs1?.area)],
+      [`area`, optionalStatsDiff(attrs.area, attrs1?.area)],
       [
         `speed`,
         optionalStatsDiff(attrs.rotationSpeed, attrs1?.rotationSpeed),
@@ -587,7 +584,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     },
     stats: (attrs, attrs1) => [
       [`damage`, optionalStatsDiff(attrs.damage, attrs1?.damage)],
-      [`range`, optionalStatsDiff(attrs.area, attrs1?.area)],
+      [`area`, optionalStatsDiff(attrs.area, attrs1?.area)],
       [`angle`, optionalStatsDiff(attrs.angleRad, attrs1?.angleRad), fAngle],
     ],
   };
@@ -639,7 +636,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     },
     stats: (attrs, attrs1) => [
       [`damage`, optionalStatsDiff(attrs.damage, attrs1?.damage)],
-      [`range`, optionalStatsDiff(attrs.area, attrs1?.area)],
+      [`area`, optionalStatsDiff(attrs.area, attrs1?.area)],
     ],
   };
 
@@ -1239,11 +1236,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /** @param {EnemyType} enemy */
   const circleWave = (enemy) => () => {
     const angleStep = PI2 / 40;
-    range(0, PI2, angleStep).map((i) => {
-      const x = player.x + cos(i) * w2;
-      const y = player.y + sin(i) * h2;
-      pushEnemy(x, y, enemy);
-    });
+    range(0, PI2, angleStep).map((i) =>
+      pushEnemy(player.x + cos(i) * w2, player.y + sin(i) * h2, enemy),
+    );
   };
 
   /**
@@ -1472,23 +1467,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {number} y
    * @param {number} w
    */
-  const renderSurvivalStatsUi = (x, y, w) => {
-    const stats = [
+  const renderSurvivalStatsUi = (x, y, w) =>
+    renderStatsTable(x, y, w, height - y - 40, [
       [`Survived`, formatTime(manager.gameRuntime)],
-      [`Level`, `${player.lvl + 1}`],
+      [`Level`, player.lvl + 1],
       [`Damage`, fNumber(manager.damageDone)],
-      [`DPS`, `${fNumber(manager.damageDone / manager.gameRuntime, 2)}`],
-      [`Kills`, `${manager.kills}`],
-    ];
-
-    for (const stat of stats) {
-      draw.text(x + w / 2 - 5, y, stat[0], lightGray, right);
-      draw.text(x + w / 2 + 5, y, stat[1], white, left);
-      y += 15;
-    }
-
-    return y;
-  };
+      [`DPS`, fNumber(manager.damageDone / manager.gameRuntime, 2)],
+      [`Kills`, manager.kills],
+    ]);
 
   const renderIngameUI = () => {
     draw.rect(50, 0, width - 50, 20, "#600");
