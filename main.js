@@ -546,9 +546,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     ]),
     tick(_, attrs) {
       const damage = attrs.damage + player.attrs.damage.val;
-      const area = attrs.area * player.attrs.area.val;
+      const area = attrs.area;
 
-      const coneA2 = attrs.angleRad / 2;
+      const coneA2 = (attrs.angleRad / 2) * player.attrs.area.val;
       const coneStart = player.meleeDirection - coneA2;
       const coneEnd = player.meleeDirection + coneA2;
 
@@ -1080,7 +1080,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const boxLevel2 = {
     health: 50,
     spd: 26,
-    damage: 12,
+    damage: 15,
     experience: 2,
     render: boxSprite([gray, enemyStage2Color], 10),
   };
@@ -1089,7 +1089,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const boxLevel3 = {
     health: 100,
     spd: 30,
-    damage: 14,
+    damage: 20,
     experience: 3,
     render: boxSprite([gray, enemyStage2Color, "#4a4"], 10),
   };
@@ -1107,8 +1107,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   /** @type {EnemyType} */
   const boxTank = {
-    health: 80,
-    spd: 10,
+    health: 100,
+    spd: 16,
     damage: 8,
     experience: 1,
     render: boxSprite([darkGray], 10),
@@ -1127,7 +1127,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const triangleLevel2 = {
     health: 40,
     spd: 35,
-    damage: 12,
+    damage: 13,
     experience: 3,
     render: triangleSprite([darkGray, enemyStage3Color], 10),
   };
@@ -1136,14 +1136,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const triangleLevel3 = {
     health: 60,
     spd: 35,
-    damage: 14,
+    damage: 18,
     experience: 4,
     render: triangleSprite([darkGray, enemyStage3Color, "#966"], 10),
   };
 
   /** @type {EnemyType} */
   const triangleTank = {
-    health: 150,
+    health: 200,
     spd: 20,
     damage: 10,
     experience: 4,
@@ -1158,7 +1158,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     experience: 200,
     boss: true,
     pushBackResistance: 80,
-    radius: 20,
+    radius: 10,
     render: triangleSprite([enemyStage2Color], 20),
   };
 
@@ -1175,7 +1175,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const circleLevel2 = {
     health: 20,
     spd: 40,
-    damage: 12,
+    damage: 14,
     experience: 4,
     render: circleSprite([darkGray, enemyStage3Color], 5),
   };
@@ -1184,28 +1184,38 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const circleLevel3 = {
     health: 50,
     spd: 40,
-    damage: 14,
+    damage: 18,
     experience: 5,
     render: circleSprite([darkGray, enemyStage3Color, "#4ca"], 5),
   };
 
   /** @type {EnemyType} */
+  const circleTank = {
+    health: 250,
+    spd: 25,
+    damage: 12,
+    experience: 4,
+    radius: 8,
+    render: circleSprite([enemyStage3Color], 8),
+  };
+
+  /** @type {EnemyType} */
   const circleBoss = {
     health: 5000,
-    spd: 40,
-    damage: 20,
+    spd: 50,
+    damage: 25,
     experience: 300,
     boss: true,
     pushBackResistance: 80,
-    radius: 20,
-    render: circleSprite([enemyStage2Color], 10),
+    radius: 15,
+    render: circleSprite([enemyStage2Color], 15),
   };
 
   /** @type {EnemyType} */
   const finalBoss = {
     health: 8000,
-    spd: 60,
-    damage: 20,
+    spd: 65,
+    damage: 55,
     experience: 0,
     boss: true,
     pushBackResistance: 1000,
@@ -1275,7 +1285,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     { enemies: [boxLevel2, triangleLevel2, circleLevel2] },
     {
       enemies: [circleLevel2, boxLevel3],
-      wave: circleWave(circleLevel2),
+      wave: circleWave(circleTank),
     },
     { enemies: [boxLevel3, triangleLevel3] },
     { enemies: [boxLevel3, triangleLevel3] },
@@ -1675,7 +1685,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       drawText(w2, 100, "YOU WON", white, center, middle);
 
       let y = 130;
-      y = renderSurvivalStatsUi(100, y, width - 200);
+      y = renderSurvivalStatsUi(70, y, width - 140);
       y += 30;
 
       drawText(w2, y, pressEnterToRestart, white, center);
