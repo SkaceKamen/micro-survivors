@@ -686,7 +686,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       nam: "Warrior",
       weapon: sword,
       attrs: {
-        health: 50,
+        health: 75,
         spd: 45,
         healthRegen: 0.05,
         pickupDistance: 50,
@@ -707,7 +707,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       nam: "Monk",
       weapon: barbedWire,
       attrs: {
-        health: 50,
+        health: 75,
         spd: 60,
         healthRegen: 0.05,
         pickupDistance: 50,
@@ -728,7 +728,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       nam: "Magic Man",
       weapon: magicOrbs,
       attrs: {
-        health: 50,
+        health: 75,
         spd: 45,
         healthRegen: 0.05,
         pickupDistance: 50,
@@ -766,17 +766,23 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   const baseWeight = 100;
 
+  let weaponCacheIndex = 0;
+
   /**
    * @param {WeaponType} weapon
    * @returns {Upgrade}
    */
   const weaponUpgrade = (weapon) => {
-    /** @type {undefined | { lvl: number; existing: Weapon; desc: string; }} */
+    /** @type {undefined | {cacheIndex: number; lvl: number; existing: Weapon; desc: string; }} */
     let cache;
 
     return {
       nam: weapon.nam,
       desc() {
+        if (cache?.cacheIndex !== weaponCacheIndex) {
+          cache = undefined;
+        }
+
         const existing =
           cache?.existing ?? player.weapons.find((w) => w.typ === weapon);
 
@@ -799,6 +805,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           .join(", ");
 
         cache = {
+          cacheIndex: weaponCacheIndex,
           lvl: existing.lvl,
           existing,
           desc,
@@ -1069,7 +1076,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const boxLevel1 = {
     health: 10,
     spd: 26,
-    damage: 8,
+    damage: 6,
     experience: 1,
     render: boxSprite([gray], 10),
   };
@@ -1078,7 +1085,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const boxLevel2 = {
     health: 50,
     spd: 26,
-    damage: 15,
+    damage: 12,
     experience: 2,
     render: boxSprite([gray, enemyStage2Color], 10),
   };
@@ -1087,7 +1094,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const boxLevel3 = {
     health: 100,
     spd: 30,
-    damage: 20,
+    damage: 15,
     experience: 3,
     render: boxSprite([gray, enemyStage2Color, "#4a4"], 10),
   };
@@ -1107,7 +1114,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const boxTank = {
     health: 100,
     spd: 16,
-    damage: 8,
+    damage: 6,
     experience: 1,
     render: boxSprite([darkGray], 10),
   };
@@ -1116,7 +1123,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const triangleLevel1 = {
     health: 20,
     spd: 35,
-    damage: 8,
+    damage: 6,
     experience: 2,
     render: triangleSprite([darkGray], 10),
   };
@@ -1125,7 +1132,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const triangleLevel2 = {
     health: 40,
     spd: 35,
-    damage: 13,
+    damage: 8,
     experience: 3,
     render: triangleSprite([darkGray, enemyStage3Color], 10),
   };
@@ -1134,14 +1141,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const triangleLevel3 = {
     health: 60,
     spd: 35,
-    damage: 18,
+    damage: 12,
     experience: 4,
     render: triangleSprite([darkGray, enemyStage3Color, "#966"], 10),
   };
 
   /** @type {EnemyType} */
   const triangleTank = {
-    health: 200,
+    health: 220,
     spd: 20,
     damage: 10,
     experience: 4,
@@ -1164,7 +1171,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const circleLevel1 = {
     health: 10,
     spd: 40,
-    damage: 8,
+    damage: 6,
     experience: 3,
     render: circleSprite([darkGray], 5),
   };
@@ -1173,7 +1180,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const circleLevel2 = {
     health: 20,
     spd: 40,
-    damage: 14,
+    damage: 8,
     experience: 4,
     render: circleSprite([darkGray, enemyStage3Color], 5),
   };
@@ -1182,14 +1189,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const circleLevel3 = {
     health: 50,
     spd: 40,
-    damage: 18,
+    damage: 12,
     experience: 5,
     render: circleSprite([darkGray, enemyStage3Color, "#4ca"], 5),
   };
 
   /** @type {EnemyType} */
   const circleTank = {
-    health: 250,
+    health: 200,
     spd: 25,
     damage: 12,
     experience: 4,
@@ -1297,7 +1304,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     { enemies: [], boss: finalBoss },
   ];
 
-  const finalBossAt = 540;
+  const finalBossAt = 600;
   const waveTime = finalBossAt / (spawnRates.length - 1);
 
   // #endregion
@@ -1878,6 +1885,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     assignPlayer(playerType);
     Object.assign(manager, startingManagerState);
 
+    weaponCacheIndex++;
     manager.gameState = MANAGER_STATES.IN_PROGRESS;
     enemies.length = 0;
     pickups.length = 0;
@@ -1931,7 +1939,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
             spawnRate.wave?.();
           }
 
-          const rate = spawnRate.spawnRate ?? 0.2;
+          const rate = spawnRate.spawnRate ?? 0.21;
           if (spawnRate.enemies.length > 0 && manager.spawnTimeout > rate) {
             spawnEnemy(
               spawnRate.enemies[spawnTick++ % spawnRate.enemies.length],
