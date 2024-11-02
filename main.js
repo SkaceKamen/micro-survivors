@@ -170,88 +170,101 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    */
   const fillStyle = (style) => (ctx.fillStyle = style);
 
-  const draw = {
-    /**
-     * @param {number} x
-     * @param {number} y
-     * @param {number} w
-     * @param {number} h
-     * @param {string | CanvasGradient} color
-     * @param {boolean} [stroke=false]
-     */
-    rect(x, y, w, h, color, stroke) {
-      ctx[stroke ? "strokeStyle" : "fillStyle"] = color;
-      ctx[stroke ? "strokeRect" : "fillRect"](x, y, w, h);
-    },
-    /**
-     * @param {string | CanvasGradient} style
-     */
-    overlay(style = "#000d") {
-      draw.rect(0, 0, width, height, style);
-    },
-    /**
-     * @param {number} x
-     * @param {number} y
-     * @param {number} size
-     * @param {string | CanvasGradient} color
-     */
-    box(x, y, size, color) {
-      fillStyle(color);
-      ctx.fillRect(x - size / 2, y - size / 2, size, size);
-    },
-    /**
-     * @param {number} x
-     * @param {number} y
-     * @param {number} size
-     * @param {string | CanvasGradient} color
-     */
-    triangle(x, y, size, color) {
-      fillStyle(color);
-      ctx.beginPath();
-      ctx.moveTo(x, y - size / 2);
-      ctx.lineTo(x - size / 2, y + size / 2);
-      ctx.lineTo(x + size / 2, y + size / 2);
-      ctx.fill();
-    },
-    /**
-     * @param {number} x
-     * @param {number} y
-     * @param {string} text
-     * @param {string} color
-     * @param {CanvasTextAlign} [hAlign="left"]
-     * @param {CanvasTextBaseline} [vAlign="top"]
-     */
-    text(x, y, text, color, hAlign = left, vAlign = top, size = 14) {
-      ctx.font = `${size}px ${font}`;
-      fillStyle(color);
-      ctx.textAlign = hAlign;
-      ctx.textBaseline = vAlign;
-      ctx.fillText(text, x, y);
-    },
-    /**
-     * @param {number} y
-     * @param {string} text
-     */
-    titleText(y, text) {
-      draw.text(w2, y, text, white, center, top);
-    },
-    /**
-     * @param {number} x
-     * @param {number} y
-     * @param {number} radius
-     * @param {string} color
-     */
-    circle(x, y, radius, color) {
-      fillStyle(color);
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, PI2);
-      ctx.fill();
-    },
-    /**
-     * @param {number} value
-     */
-    setGlobalAlpha: (value) => (ctx.globalAlpha = value),
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} w
+   * @param {number} h
+   * @param {string | CanvasGradient} color
+   * @param {boolean} [stroke=false]
+   */
+  const drawRect = (x, y, w, h, color, stroke) => {
+    ctx[stroke ? "strokeStyle" : "fillStyle"] = color;
+    ctx[stroke ? "strokeRect" : "fillRect"](x, y, w, h);
   };
+
+  /**
+   * @param {string | CanvasGradient} style
+   */
+  const drawOverlay = (style = "#000d") => {
+    drawRect(0, 0, width, height, style);
+  };
+
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} size
+   * @param {string | CanvasGradient} color
+   */
+  const drawBox = (x, y, size, color) => {
+    fillStyle(color);
+    ctx.fillRect(x - size / 2, y - size / 2, size, size);
+  };
+
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} size
+   * @param {string | CanvasGradient} color
+   */
+  const drawTriangle = (x, y, size, color) => {
+    fillStyle(color);
+    ctx.beginPath();
+    ctx.moveTo(x, y - size / 2);
+    ctx.lineTo(x - size / 2, y + size / 2);
+    ctx.lineTo(x + size / 2, y + size / 2);
+    ctx.fill();
+  };
+
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {string} text
+   * @param {string} color
+   * @param {CanvasTextAlign} [hAlign="left"]
+   * @param {CanvasTextBaseline} [vAlign="top"]
+   */
+  const drawText = (
+    x,
+    y,
+    text,
+    color,
+    hAlign = left,
+    vAlign = top,
+    size = 14,
+  ) => {
+    ctx.font = `${size}px ${font}`;
+    fillStyle(color);
+    ctx.textAlign = hAlign;
+    ctx.textBaseline = vAlign;
+    ctx.fillText(text, x, y);
+  };
+
+  /**
+   * @param {number} y
+   * @param {string} text
+   */
+  const drawTitleText = (y, text) => {
+    drawText(w2, y, text, white, center, top);
+  };
+
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} radius
+   * @param {string} color
+   */
+  const drawCircle = (x, y, radius, color) => {
+    fillStyle(color);
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, PI2);
+    ctx.fill();
+  };
+
+  /**
+   * @param {number} value
+   */
+  const setGlobalAlpha = (value) => (ctx.globalAlpha = value);
 
   /**
    *
@@ -272,8 +285,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
     for (const [name, value] of table) {
       if (name || value) {
-        draw.text(x, y, `${name}:`, gray);
-        draw.text(x + rowWidth - 5, y, `${value}`, white, right);
+        drawText(x, y, `${name}:`, gray);
+        drawText(x + rowWidth - 5, y, `${value}`, white, right);
       }
 
       y += rowHeight;
@@ -490,7 +503,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       const radius = attrs.radius * player.attrs.area.val;
 
       eachOrb(attrs, weapon.tick, (orbX, orbY) => {
-        draw.circle(orbX, orbY, radius / 2, white);
+        drawCircle(orbX, orbY, radius / 2, white);
       });
     },
     stats: (attrs, attrs1) => [
@@ -632,7 +645,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       const delta = weapon.damageTick / rate;
       const alpha = 0.15 + cos(delta * 2 * PI) * 0.04;
 
-      draw.circle(player.x, player.y, area, `rgba(255,0,0,${alpha})`);
+      drawCircle(player.x, player.y, area, `rgba(255,0,0,${alpha})`);
     },
     stats: (attrs, attrs1) => [
       [`damage`, optionalStatsDiff(attrs.damage, attrs1?.damage)],
@@ -690,7 +703,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         healthRegen: 0.025,
         damage: 0.3,
       },
-      render: (x, y) => draw.box(x, y, 10, white),
+      render: (x, y) => drawBox(x, y, 10, white),
     },
     {
       nam: "Monk",
@@ -711,7 +724,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         pickupDistance: 1,
         area: 0.025,
       },
-      render: (x, y) => draw.triangle(x, y, 10, white),
+      render: (x, y) => drawTriangle(x, y, 10, white),
     },
     {
       nam: "Magic Man",
@@ -734,7 +747,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         armor: 0.25,
         area: 0.02,
       },
-      render: (x, y) => draw.circle(x, y, 5, white),
+      render: (x, y) => drawCircle(x, y, 5, white),
     },
   ];
 
@@ -1032,9 +1045,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @returns {(x: number, y: number, hit: string | undefined) => void}
    */
   const boxSprite = (colors, size) => (x, y, hit) =>
-    colors.map((color, i) =>
-      draw.box(x + i * 2, y + i * 2, size, hit ?? color),
-    );
+    colors.map((color, i) => drawBox(x + i * 2, y + i * 2, size, hit ?? color));
 
   /**
    * @param {string[]} colors
@@ -1043,7 +1054,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    */
   const triangleSprite = (colors, size) => (x, y, hit) =>
     colors.map((color, i) =>
-      draw.triangle(x + i * 2, y + i * 2, size, hit ?? color),
+      drawTriangle(x + i * 2, y + i * 2, size, hit ?? color),
     );
 
   /**
@@ -1053,7 +1064,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    */
   const circleSprite = (colors, radius) => (x, y, hit) =>
     colors.map((color, i) =>
-      draw.circle(x + i * 2, y + i * 2, radius, hit ?? color),
+      drawCircle(x + i * 2, y + i * 2, radius, hit ?? color),
     );
 
   /** @type {EnemyType} */
@@ -1200,9 +1211,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     pushBackResistance: 1000,
     radius: 25,
     render(x, y, hit) {
-      draw.circle(x, y, 25, hit ?? enemyStage2Color);
-      draw.box(x, y, 25, hit ?? enemyStage3Color);
-      draw.triangle(x, y, 23, hit ?? enemyStage2Color);
+      drawCircle(x, y, 25, hit ?? enemyStage2Color);
+      drawBox(x, y, 25, hit ?? enemyStage3Color);
+      drawTriangle(x, y, 23, hit ?? enemyStage2Color);
     },
   };
 
@@ -1326,7 +1337,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
     for (let x = startX; x < endX; x += bgBoxSize) {
       for (let y = startY; y < endY; y += bgBoxSize) {
-        draw.rect(
+        drawRect(
           x,
           y,
           bgBoxSize,
@@ -1358,8 +1369,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       type.render(enemy.x, enemy.y, enemy.hitTick > 0 ? white : undefined);
 
       if (type.boss) {
-        draw.rect(enemy.x - 20, enemy.y + 15, 40, 3, "#333");
-        draw.rect(
+        drawRect(enemy.x - 20, enemy.y + 15, 40, 3, "#333");
+        drawRect(
           enemy.x - 20,
           enemy.y + 15,
           (enemy.health / type.health) * 40,
@@ -1372,7 +1383,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   const renderPickups = () => {
     for (const pickup of pickups) {
-      draw.box(
+      drawBox(
         pickup.x - 3,
         pickup.y - 3,
         (pickup.experience ?? 0) >= 10 ? 8 : 6,
@@ -1477,8 +1488,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     ]);
 
   const renderIngameUI = () => {
-    draw.rect(50, 0, width - 50, 20, "#600");
-    draw.rect(
+    drawRect(50, 0, width - 50, 20, "#600");
+    drawRect(
       50,
       0,
       (player.health / player.attrs.health.val) * (width - 50),
@@ -1486,7 +1497,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       "#f66",
     );
 
-    draw.text(
+    drawText(
       50 + 2,
       10,
       floor(player.health) + "/" + floor(player.attrs.health.val),
@@ -1495,8 +1506,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       middle,
     );
 
-    draw.rect(50, 20, width - 50, 12, darkGray);
-    draw.rect(
+    drawRect(50, 20, width - 50, 12, darkGray);
+    drawRect(
       50,
       20,
       (player.experience / player.nextLevelExperience) * (width - 50),
@@ -1504,7 +1515,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       white,
     );
 
-    draw.text(
+    drawText(
       50 + 2,
       27,
       player.experience + "/" + player.nextLevelExperience,
@@ -1513,16 +1524,16 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       middle,
     );
 
-    draw.rect(0, 0, 50, 32, "#000");
-    draw.text(25, 2, "level", "#666", center, top);
-    draw.text(25, 18, `${player.lvl + 1}`, white, center, top);
+    drawRect(0, 0, 50, 32, "#000");
+    drawText(25, 2, "level", "#666", center, top);
+    drawText(25, 18, `${player.lvl + 1}`, white, center, top);
 
-    draw.text(w2, 35, formatTime(manager.gameRuntime), white, center);
+    drawText(w2, 35, formatTime(manager.gameRuntime), white, center);
 
     if (manager.gameRuntime < 20) {
       let y = height - 30 - help.length * 15;
       for (const text of help) {
-        draw.text(10, y, text, white, left, top);
+        drawText(10, y, text, white, left, top);
         y += 15;
       }
     }
@@ -1540,7 +1551,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    */
   const renderSelectable = (x, y, itemWidth, itemHeight, renderItem, items) => {
     for (let i = 0; i < items.length; i++) {
-      draw.rect(
+      drawRect(
         x,
         y,
         itemWidth,
@@ -1548,7 +1559,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         i === manager.selIndex ? "#333" : "#222",
       );
 
-      draw.rect(
+      drawRect(
         x,
         y,
         itemWidth,
@@ -1569,23 +1580,23 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     [MANAGER_STATES.DEAD]() {
       let y = 100;
 
-      draw.overlay();
-      draw.text(w2, y, "YOU'RE DEAD!", "#f88", center, top, 24);
+      drawOverlay();
+      drawText(w2, y, "YOU'RE DEAD!", "#f88", center, top, 24);
 
       y += 45;
       y = renderSurvivalStatsUi(50, y, width - 100);
       y += 30;
 
-      draw.text(w2, y, pressEnterToRestart, white, center);
+      drawText(w2, y, pressEnterToRestart, white, center);
     },
     [MANAGER_STATES.PAUSED]() {
-      draw.overlay();
-      draw.titleText(40, "PAUSED");
+      drawOverlay();
+      drawTitleText(40, "PAUSED");
       renderPlayerStatsUi(20, 80, width - 40);
     },
     [MANAGER_STATES.PICKING_PLAYER]() {
-      draw.overlay();
-      draw.titleText(10, "PICK CLASS");
+      drawOverlay();
+      drawTitleText(10, "PICK CLASS");
 
       renderSelectable(
         20,
@@ -1594,7 +1605,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         20,
         (x, y, type) => {
           type.render(x + 10, y + 10);
-          draw.text(x + 20, y + 10, type.nam, white, left, middle);
+          drawText(x + 20, y + 10, type.nam, white, left, middle);
         },
         playerTypes,
       );
@@ -1603,8 +1614,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       renderStatsTable(140, 30, width - 140 - 20, height - 60, stats, false);
     },
     [MANAGER_STATES.PICKING_UPGRADE]() {
-      draw.overlay();
-      draw.titleText(10, "LEVEL UP");
+      drawOverlay();
+      drawTitleText(10, "LEVEL UP");
 
       renderSelectable(
         20,
@@ -1616,15 +1627,15 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
             (u) => u === upgrade,
           ).length;
 
-          draw.text(x + 5, y + 5, upgrade.nam, white);
-          draw.text(
+          drawText(x + 5, y + 5, upgrade.nam, white);
+          drawText(
             x + 5,
             y + 22,
             typeof upgrade.desc === "string" ? upgrade.desc : upgrade.desc(),
             lightGray,
           );
 
-          draw.text(
+          drawText(
             x + width - 50,
             y + 20,
             alreadyApplied + "/" + (upgrade.maxCount ?? 5),
@@ -1639,10 +1650,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       renderPlayerStatsUi(20, 50 + 3 * 50 + 10, width - 40);
     },
     [MANAGER_STATES.START]() {
-      draw.overlay();
-      draw.text(w2, h2 - 40, "MICRO", white, center, "bottom", 68);
-      draw.text(w2, h2 - 40, "SURVIVORS", white, center, top, 38);
-      draw.text(
+      drawOverlay();
+      drawText(w2, h2 - 40, "MICRO", white, center, "bottom", 68);
+      drawText(w2, h2 - 40, "SURVIVORS", white, center, top, 38);
+      drawText(
         w2,
         height - 5,
         "by SkaceKamen",
@@ -1652,19 +1663,19 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         10,
       );
 
-      draw.setGlobalAlpha(0.75 + cos((performance.now() / 1000) * 5) * 0.25);
-      draw.text(w2, h2 + 50, pressEnterToStart, white, center);
-      draw.setGlobalAlpha(1);
+      setGlobalAlpha(0.75 + cos((performance.now() / 1000) * 5) * 0.25);
+      drawText(w2, h2 + 50, pressEnterToStart, white, center);
+      setGlobalAlpha(1);
     },
     [MANAGER_STATES.WON]() {
-      draw.overlay();
-      draw.text(w2, 100, "YOU WON", white, center, middle);
+      drawOverlay();
+      drawText(w2, 100, "YOU WON", white, center, middle);
 
       let y = 130;
       y = renderSurvivalStatsUi(100, y, width - 200);
       y += 30;
 
-      draw.text(w2, y, pressEnterToRestart, white, center);
+      drawText(w2, y, pressEnterToRestart, white, center);
     },
   };
 
@@ -1689,7 +1700,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         `rgba(255,0,0,${d})`,
       );
 
-      draw.overlay(damageOverlayGradient);
+      drawOverlay(damageOverlayGradient);
     }
 
     const p = min(1, player.lastPickupTick / 0.1);
@@ -1700,7 +1711,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         `rgba(255,255,255,${p * 0.15})`,
       );
 
-      draw.overlay(pickupOverlayGradient);
+      drawOverlay(pickupOverlayGradient);
     }
   };
 
