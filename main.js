@@ -3,7 +3,12 @@
 function microSurvivors(target = document.body, width = 400, height = 400) {
   // #region Constants
   const font = "monospace";
-  const help = ["WASD to move", "Mouse to aim", "Survive", "Kill end boss"];
+  const help = () => [
+    "WASD to move",
+    player.weapons[0].typ === sword ? "Mouse to aim" : undefined,
+    "Survive",
+    "Kill end boss",
+  ];
   const w2 = width / 2;
   const h2 = height / 2;
   const {
@@ -329,6 +334,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     65: "l",
     68: "r",
     13: "e",
+    69: "e",
     27: "p",
     80: "p",
   };
@@ -1544,9 +1550,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     drawText(w2, 35, formatTime(manager.gameRuntime), white, center);
 
     if (manager.gameRuntime < 20) {
-      let y = height - 30 - help.length * 15;
-      for (const text of help) {
-        drawText(10, y, text, white, left, top);
+      let y = height - 30 - help().length * 15;
+      for (const text of help()) {
+        text && drawText(10, y, text, white, left, top);
         y += 15;
       }
     }
