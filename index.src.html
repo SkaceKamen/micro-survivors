@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Micro Survivors</title>
     <style>
+      * {
+        padding: 0;
+        margin: 0;
+      }
+
       body,
       html {
         background: #333;
@@ -56,7 +61,23 @@
     <div id="game"></div>
 
     <script>
-      microSurvivors(document.querySelector("#game"));
+      const [canvas, , , setScale] = microSurvivors(
+        document.querySelector("#game"),
+      );
+      const viewWidth = window.innerWidth;
+      const viewHeight = window.innerHeight;
+
+      if (viewWidth < 800 || viewHeight < 800) {
+        const scale = Math.min(
+          viewWidth / canvas.width,
+          viewHeight / canvas.height,
+        );
+
+        canvas.style.transform = `scale(${scale})`;
+        canvas.style.transformOrigin = "top left";
+
+        setScale(scale);
+      }
     </script>
 
     <div class="info">

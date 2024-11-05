@@ -7,7 +7,7 @@
   "type": "commonjs",
   "scripts": {
     "minify:js": "uglifyjs -m -c --mangle-props keep_quoted --name-cache main.mangle-cache.json -o main.min.js main.js",
-    "minify:html": "html-minifier --collapse-whitespace --remove-comments --remove-attribute-quotes --minify-css true index.src.html > index.html"
+    "minify:html": "html-minifier --collapse-whitespace --remove-comments --remove-attribute-quotes --minify-js true --minify-css true index.src.html > index.html"
   },
   "author": "Jan Zipek <jan@zipek.cz>",
   "license": "MIT",

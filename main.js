@@ -393,20 +393,32 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       manager.gameState = MANAGER_STATES.PAUSED;
     }
   };
-  ontouchstart = (evt) => {
-    const relative = canvasRelative(evt.touches[0]);
-    input.touching = true;
-    justPressedInput.touching = true;
-    input.touchX = input.touchStartX = relative.x;
-    input.touchY = input.touchStartY = relative.y;
-    usesTouch = true;
-  };
-  ontouchmove = (evt) => {
-    const relative = canvasRelative(evt.touches[0]);
-    input.touchX = relative.x;
-    input.touchY = relative.y;
-  };
-  ontouchend = (evt) => {
+  canvas.addEventListener(
+    "touchstart",
+    (evt) => {
+      const relative = canvasRelative(evt.touches[0]);
+      input.touching = true;
+      justPressedInput.touching = true;
+      input.touchX = input.touchStartX = relative.x;
+      input.touchY = input.touchStartY = relative.y;
+      usesTouch = true;
+      evt.stopPropagation();
+      evt.preventDefault();
+    },
+    { passive: false },
+  );
+  canvas.addEventListener(
+    "touchmove",
+    (evt) => {
+      const relative = canvasRelative(evt.touches[0]);
+      input.touchX = relative.x;
+      input.touchY = relative.y;
+      evt.stopPropagation();
+      evt.preventDefault();
+    },
+    { passive: false },
+  );
+  ontouchend = () => {
     input.touching = false;
   };
 
