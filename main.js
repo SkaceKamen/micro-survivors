@@ -1646,7 +1646,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {T[]} items
    */
   const renderSelectable = (x, y, itemWidth, itemHeight, renderItem, items) => {
-    for (let i = 0; i < items.length; i++) {
+    items.map((item, i) => {
       drawRect(
         x,
         y,
@@ -1664,21 +1664,29 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         true,
       );
 
-      renderItem(x, y, items[i]);
+      renderItem(x, y, item);
 
       y += itemHeight + 5;
-    }
+    });
 
     return y;
   };
 
-  const processSelectable = (x, y, itemWidth, itemHeight) => {
-    if (justPressedInput.touching) {
-      if (input.touchX >= x && input.touchX <= x + itemWidth) {
-        const index = floor((input.touchStartY - y) / (itemHeight + 5));
-        if (index >= 0 && index <= manager.selLength) {
-          manager.selIndex = index;
-        }
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} itemWidth
+   * @param {number} itemHeight
+   */
+  const processTouchSelectable = (x, y, itemWidth, itemHeight) => {
+    if (
+      justPressedInput.touching &&
+      input.touchX >= x &&
+      input.touchX <= x + itemWidth
+    ) {
+      const index = floor((input.touchStartY - y) / (itemHeight + 5));
+      if (index >= 0 && index <= manager.selLength) {
+        manager.selIndex = index;
       }
     }
   };
@@ -1777,7 +1785,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         10,
       );
 
-      setGlobalAlpha(0.75 + cos((performance.now() / 1000) * 5) * 0.25);
+      setGlobalAlpha(0.75 + cos((Date.now() / 1000) * 5) * 0.25);
       drawText(w2, h2 + 50, pressEnterToStart, white, center);
       setGlobalAlpha(1);
     },
@@ -2068,7 +2076,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         break;
 
       case MANAGER_STATES.PICKING_PLAYER:
-        processSelectable(20, 50, 100, 20);
+        processTouchSelectable(20, 50, 100, 20);
         managerSelectionTick();
         const type = playerTypes[manager.selIndex];
 
@@ -2096,7 +2104,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         break;
 
       case MANAGER_STATES.PICKING_UPGRADE:
-        processSelectable(20, 50, width - 40, 40);
+        processTouchSelectable(20, 50, width - 40, 40);
         managerSelectionTick();
 
         if (justPressedInput.e || justPressedInput.touching) {
@@ -2152,15 +2160,18 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     }
 
     if (usesTouch) {
-      /** @type {{ distance: number; enemy: Enemy | null }} */
-      const base = { distance: Infinity, enemy: null };
-      const closestEnemy = enemies.reduce((closest, enemy) => {
-        const dx = player.x - enemy.x;
-        const dy = player.y - enemy.y;
-        const distance = hypot(dx, dy);
-
-        return distance < closest.distance ? { distance, enemy } : closest;
-      }, base);
+      const closestEnemy = enemies.reduce(
+        /**
+         * @param {{distance: number, enemy: Enemy | null}} closest
+         * @param {Enemy} enemy
+         * @returns
+         */
+        (closest, enemy) => {
+          const distance = hypot(player.x - enemy.x, player.y - enemy.y);
+          return distance < closest.distance ? { distance, enemy } : closest;
+        },
+        { distance: Infinity, enemy: null },
+      );
 
       if (closestEnemy.enemy) {
         player.meleeDirection = atan2(
