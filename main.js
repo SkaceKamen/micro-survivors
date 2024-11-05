@@ -354,7 +354,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     "p": false,
     aimAtX: 0,
     aimAtY: 0,
-    touched: false,
+    touching: false,
     touchStartX: 0,
     touchStartY: 0,
     touchX: 0,
@@ -401,10 +401,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     }
   };
   ontouchstart = (evt) => {
-    //input.e = true;
-    //justPressedInput.e = true;
-    input.touched = true;
-    justPressedInput.touched = true;
+    input.touching = true;
+    justPressedInput.touching = true;
     const relative = canvasRelative(evt.touches[0]);
     input.touchX = input.touchStartX = relative.x;
     input.touchY = input.touchStartY = relative.y;
@@ -416,8 +414,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     input.touchY = relative.y;
   };
   ontouchend = (evt) => {
-    input.touched = false;
-    //input.e = false;
+    input.touching = false;
   };
 
   // #endregion
@@ -1617,7 +1614,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       );
     }
 
-    if (input.touched) {
+    if (input.touching) {
       drawCircle(
         input.touchStartX,
         input.touchStartY,
@@ -1676,7 +1673,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   };
 
   const processSelectable = (x, y, itemWidth, itemHeight) => {
-    if (justPressedInput.touched) {
+    if (justPressedInput.touching) {
       if (input.touchX >= x && input.touchX <= x + itemWidth) {
         const index = floor((input.touchStartY - y) / (itemHeight + 5));
         if (index >= 0 && index <= manager.selLength) {
@@ -2059,7 +2056,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       case MANAGER_STATES.WON:
       case MANAGER_STATES.DEAD:
       case MANAGER_STATES.START:
-        if (input.e || justPressedInput.touched) {
+        if (input.e || justPressedInput.touching) {
           manager.selIndex = 0;
           manager.selLength = playerTypes.length - 1;
           assignPlayer(playerTypes[0]);
@@ -2084,7 +2081,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           zzfx(...audio.interactionClick);
         }
 
-        if (justPressedInput.touched) {
+        if (justPressedInput.touching) {
           if (
             input.touchStartX >= 20 &&
             input.touchStartX <= 120 &&
@@ -2102,7 +2099,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         processSelectable(20, 50, width - 40, 40);
         managerSelectionTick();
 
-        if (justPressedInput.e || justPressedInput.touched) {
+        if (justPressedInput.e || justPressedInput.touching) {
           const upgrade = manager.upgrades[manager.selIndex];
           upgrade.use();
           player.upgrades.push(upgrade);
@@ -2138,7 +2135,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
     let speed = player.attrs.spd.val * deltaTime;
 
-    if (input.touched) {
+    if (input.touching) {
       const touchDx = input.touchX - input.touchStartX;
       const touchDy = input.touchY - input.touchStartY;
       const touchD = hypot(touchDx, touchDy);
