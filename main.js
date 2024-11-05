@@ -401,23 +401,23 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     }
   };
   ontouchstart = (evt) => {
-    justPressedInput.e = true;
+    //input.e = true;
+    //justPressedInput.e = true;
     input.touched = true;
+    justPressedInput.touched = true;
     const relative = canvasRelative(evt.touches[0]);
     input.touchStartX = relative.x;
     input.touchStartY = relative.y;
     usesTouch = true;
-    evt.preventDefault();
   };
   ontouchmove = (evt) => {
     const relative = canvasRelative(evt.touches[0]);
     input.touchX = relative.x;
     input.touchY = relative.y;
-    evt.preventDefault();
   };
   ontouchend = (evt) => {
     input.touched = false;
-    evt.preventDefault();
+    //input.e = false;
   };
 
   // #endregion
@@ -1675,6 +1675,17 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     return y;
   };
 
+  const processSelectable = (x, y, itemWidth, itemHeight) => {
+    if (justPressedInput.touched) {
+      if (input.touchX >= x && input.touchX <= x + itemWidth) {
+        const index = floor((input.touchStartY - y) / (itemHeight + 5));
+        if (index >= 0 && index <= manager.selLength) {
+          manager.selIndex = index;
+        }
+      }
+    }
+  };
+
   /**
    * @param {Upgrade} upgrade
    */
@@ -1717,6 +1728,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         getPlayerStats(player, true),
         false,
       );
+
+      if (usesTouch) {
+        drawRect(20, height - 80, 100, 30, "#333");
+        drawText(70, height - 65, "START", white, center, middle);
+      }
     },
     [MANAGER_STATES.PICKING_UPGRADE]() {
       drawTitleText(10, "LEVEL UP");
@@ -2043,7 +2059,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       case MANAGER_STATES.WON:
       case MANAGER_STATES.DEAD:
       case MANAGER_STATES.START:
-        if (input.e) {
+        if (input.e || justPressedInput.touched) {
           manager.selIndex = 0;
           manager.selLength = playerTypes.length - 1;
           assignPlayer(playerTypes[0]);
@@ -2055,6 +2071,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         break;
 
       case MANAGER_STATES.PICKING_PLAYER:
+        processSelectable(20, 50, 100, 20);
         managerSelectionTick();
         const type = playerTypes[manager.selIndex];
 
@@ -2067,12 +2084,25 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           zzfx(...audio.interactionClick);
         }
 
+        if (justPressedInput.touched) {
+          if (
+            input.touchStartX >= 20 &&
+            input.touchStartX <= 120 &&
+            input.touchStartY > height - 80 &&
+            input.touchStartY < height - 50
+          ) {
+            startNewGame(playerTypes[manager.selIndex]);
+            zzfx(...audio.interactionClick);
+          }
+        }
+
         break;
 
       case MANAGER_STATES.PICKING_UPGRADE:
+        processSelectable(20, 50, width - 40, 40);
         managerSelectionTick();
 
-        if (justPressedInput.e) {
+        if (justPressedInput.e || justPressedInput.touched) {
           const upgrade = manager.upgrades[manager.selIndex];
           upgrade.use();
           player.upgrades.push(upgrade);
