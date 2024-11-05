@@ -386,8 +386,25 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   // #region Weapons definition
 
+  const weaponStatToLabel = {
+    damage: "damage",
+    area: "area",
+    rotationSpeed: "speed",
+    orbs: "orbs",
+    radius: "radius",
+    angleRad: "angle",
+  };
+
+  const weaponStatToFormatter = {
+    /**
+     * @param {number} v
+     */
+    rotationSpeed: (v) => fAngle(v) + "/s",
+    angleRad: fAngle,
+  };
+
   /**
-   * @template LevelType
+   * @template {{}} LevelType
    * @param {[LevelType, ...Partial<LevelType>[]]} levels
    * @returns {LevelType[]}
    */
@@ -396,13 +413,23 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     /** @type {LevelType[]} */
     let result = [levels[0]];
     levels.forEach((level, i) => {
+      if (i === 0) return;
+
+      const desc = Object.entries(level)
+        .map(
+          ([key, value]) =>
+            `+${(weaponStatToFormatter[key] ?? fNumber)(value - previous[key])} ${weaponStatToLabel[key]}`,
+        )
+        .join(", ");
+
       previous = {
         ...previous,
         ...level,
       };
 
-      result[i] = previous;
+      result[i] = { ...previous, desc };
     });
+
     return result;
   };
 
@@ -450,11 +477,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @template TLevel
    * @typedef WeaponTypeBase
    * @property {string} nam
-   * @property {string} desc
    * @property {TLevel[]} levels
    * @property {(weapon: Weapon, level: TLevel) => void} render
    * @property {(weapon: Weapon, level: TLevel) => void} tick
-   * @property {(level: TLevel, nextLevel?: TLevel) => [string, number, ((input: number) => string)?][]} stats
    */
 
   /**
@@ -465,6 +490,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @property {number} damageRate
    * @property {number} orbs
    * @property {number} radius
+   * @property {string} [desc]
    */
 
   /**
@@ -493,7 +519,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /** @type {MagicOrbsWeapon} */
   const magicOrbs = {
     nam: "Orbs",
-    desc: "Orbiting orbs",
     levels: fillLevels([
       {
         damage: 10,
@@ -502,6 +527,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         damageRate: 0.1,
         orbs: 1,
         radius: 10,
+        desc: "Orbiting orbs",
       },
       { orbs: 2 },
       { damage: 15, rotationSpeed: PI / 1.25 },
@@ -530,17 +556,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         drawCircle(orbX, orbY, radius / 2, white);
       });
     },
-    stats: (attrs, attrs1) => [
-      [`damage`, optionalStatsDiff(attrs.damage, attrs1?.damage)],
-      [`area`, optionalStatsDiff(attrs.area, attrs1?.area)],
-      [
-        `speed`,
-        optionalStatsDiff(attrs.rotationSpeed, attrs1?.rotationSpeed),
-        (s) => fAngle(s) + "/s",
-      ],
-      [`count`, optionalStatsDiff(attrs.orbs, attrs1?.orbs)],
-      [`size`, optionalStatsDiff(attrs.radius, attrs1?.radius)],
-    ],
   };
 
   /**
@@ -549,6 +564,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @property {number} angleRad
    * @property {number} area
    * @property {number} damageRate
+   * @property {string} [desc]
    */
 
   /**
@@ -558,9 +574,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /** @type {MeleeWeapon} */
   const sword = {
     nam: "Sword",
-    desc: "melee weapon",
     levels: fillLevels([
-      { damage: 8, angleRad: PI / 4, area: 80, damageRate: 0.5 },
+      {
+        damage: 8,
+        angleRad: PI / 4,
+        area: 80,
+        damageRate: 0.5,
+        desc: "Melee weapon",
+      },
       { damage: 13 },
       { angleRad: (PI / 4) * 1.2, area: 90 },
       { damage: 18 },
@@ -611,11 +632,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         ctx.fill();
       }
     },
-    stats: (attrs, attrs1) => [
-      [`damage`, optionalStatsDiff(attrs.damage, attrs1?.damage)],
-      [`area`, optionalStatsDiff(attrs.area, attrs1?.area)],
-      [`angle`, optionalStatsDiff(attrs.angleRad, attrs1?.angleRad), fAngle],
-    ],
   };
 
   /**
@@ -623,6 +639,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @property {number} damage
    * @property {number} area
    * @property {number} damageRate
+   * @property {string} [desc]
    */
 
   /**
@@ -632,9 +649,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /** @type {AreaWeapon} */
   const barbedWire = {
     nam: "Barbed Wire",
-    desc: "area damage",
     levels: fillLevels([
-      { area: 40, damage: 2, damageRate: 0.75 },
+      { area: 40, damage: 2, damageRate: 0.75, desc: "Area damage" },
       { area: 60 },
       { damage: 3 },
       { area: 70 },
@@ -656,10 +672,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       drawCircle(player.x, player.y, area, `rgba(255,0,0,${alpha})`);
     },
-    stats: (attrs, attrs1) => [
-      [`damage`, optionalStatsDiff(attrs.damage, attrs1?.damage)],
-      [`area`, optionalStatsDiff(attrs.area, attrs1?.area)],
-    ],
   };
 
   /**
@@ -777,52 +789,16 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   const baseWeight = 100;
 
-  let weaponCacheIndex = 0;
-
   /**
    * @param {WeaponType} weapon
    * @returns {Upgrade}
    */
   const weaponUpgrade = (weapon) => {
-    /** @type {undefined | {cacheIndex: number; lvl: number; existing: Weapon; desc: string; }} */
-    let cache;
-
     return {
       nam: weapon.nam,
-      desc() {
-        if (cache?.cacheIndex !== weaponCacheIndex) {
-          cache = undefined;
-        }
-
-        const existing =
-          cache?.existing ?? player.weapons.find((w) => w.typ === weapon);
-
-        if (!existing) {
-          return weapon.desc;
-        }
-
-        if (cache?.lvl === existing.lvl) {
-          return cache.desc;
-        }
-
-        const currentLevel = existing.typ.levels[existing.lvl];
-        const nextLevel = existing.typ.levels[existing.lvl + 1];
-
-        // @ts-expect-error level typing is broken
-        const stats = existing.typ.stats(currentLevel, nextLevel);
-        const desc = stats
-          .filter((s) => !!s[1])
-          .map(([l, v, f = fNumber]) => `+${f(v)} ${l}`)
-          .join(", ");
-
-        cache = {
-          cacheIndex: weaponCacheIndex,
-          lvl: existing.lvl,
-          existing,
-          desc,
-        };
-
-        return desc;
+      desc: () => {
+        const existing = player.weapons.find((w) => w.typ === weapon);
+        return weapon.levels[(existing?.lvl ?? -1) + 1].desc ?? "";
       },
       use() {
         const existing = player.weapons.find((w) => w.typ === weapon);
@@ -940,6 +916,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @property {number} lastPickupTick
    * @property {number} meleeDirection
    * @property {number} levelUpTick
+   * @property {number} levelUpCount
    * @property {Object} attrs
    * @property {PlayerAttribute} attrs.spd
    * @property {PlayerAttribute} attrs.health
@@ -974,6 +951,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     lastPickupTick: 0,
     meleeDirection: 0,
     levelUpTick: 0,
+    levelUpCount: 0,
 
     // Attribute values
     attrs: {
@@ -1370,13 +1348,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           y,
           bgBoxSize,
           bgBoxSize,
-          x % bgBoxSize2 === 0
-            ? y % bgBoxSize2 === 0
-              ? "#000"
-              : "#111"
-            : y % bgBoxSize2 === 0
-              ? "#111"
-              : "#000",
+          (x % bgBoxSize2 === 0) === (y % bgBoxSize2 === 0) ? "#000" : "#111",
         );
       }
     }
@@ -1388,7 +1360,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     if (player.levelUpTick > 0) {
       const d =
         player.levelUpTick > leveUpTimeout - 0.1
-          ? (1 - player.levelUpTick) / 0.1
+          ? (leveUpTimeout - player.levelUpTick) / 0.1
           : player.levelUpTick / (leveUpTimeout - 0.1);
 
       setGlobalAlpha(d * 0.5);
@@ -1420,12 +1392,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       type.render(enemy.x, enemy.y, enemy.hitTick > 0 ? white : undefined);
 
       if (type.boss) {
-        drawRect(enemy.x - 20, enemy.y + 15, 40, 3, "#333");
-        drawRect(
+        drawBar(
           enemy.x - 20,
           enemy.y + 15,
-          (enemy.health / type.health) * 40,
+          40,
           3,
+          "#333",
+          enemy.health,
+          type.health,
           "#f33",
         );
       }
@@ -1435,8 +1409,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const renderPickups = () => {
     for (const pickup of pickups) {
       drawBox(
-        pickup.x - 3,
-        pickup.y - 3,
+        pickup.x,
+        pickup.y,
         (pickup.experience ?? 0) >= 10 ? 8 : 6,
         (pickup.health ?? 0) > 0
           ? "#0c0"
@@ -1504,10 +1478,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       add(
         [`${name} level`, weapon.lvl + 1],
-        ...weapon.typ
-          // @ts-expect-error can't be bothered to fight the level type here
-          .stats(weapon.typ.levels[weapon.lvl])
-          .map(([l, v, f = fNumber]) => [`${name} ${l}`, f(v)]),
+        ...Object.entries(weapon.typ.levels[weapon.lvl])
+          .filter(([l]) => !!weaponStatToLabel[l])
+          .map(([l, v]) => [
+            `${name} ${weaponStatToLabel[l]}`,
+            (weaponStatToFormatter[l] ?? fNumber)(v),
+          ]),
       );
     }
 
@@ -1536,41 +1512,68 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       [`Kills`, manager.kills],
     ]);
 
+  /**
+   *
+   * @param {number} x
+   * @param {number} y
+   * @param {number} width
+   * @param {number} height
+   * @param {string} bgColor
+   * @param {number} value
+   * @param {number} maxValue
+   * @param {string} fgColor
+   * @param {boolean} [text]
+   * @param {string} [textColor="#fff"]
+   */
+  const drawBar = (
+    x,
+    y,
+    width,
+    height,
+    bgColor,
+    value,
+    maxValue,
+    fgColor,
+    text,
+    textColor = white,
+  ) => {
+    drawRect(x, y, width, height, bgColor);
+    drawRect(x, y, (value / maxValue) * width, height, fgColor);
+    text &&
+      drawText(
+        x + 2,
+        y + height / 2,
+        floor(value) + "/" + floor(maxValue),
+        textColor,
+        left,
+        middle,
+      );
+  };
+
   const renderIngameUI = () => {
-    drawRect(50, 0, width - 50, 20, "#600");
-    drawRect(
+    drawBar(
       50,
       0,
-      (player.health / player.attrs.health.val) * (width - 50),
+      width - 50,
       20,
+      "#600",
+      player.health,
+      player.attrs.health.val,
       "#f66",
+      true,
     );
 
-    drawText(
-      50 + 2,
-      10,
-      floor(player.health) + "/" + floor(player.attrs.health.val),
-      white,
-      left,
-      middle,
-    );
-
-    drawRect(50, 20, width - 50, 12, darkGray);
-    drawRect(
+    drawBar(
       50,
       20,
-      (player.experience / player.nextLevelExperience) * (width - 50),
+      width - 50,
       12,
+      darkGray,
+      player.experience,
+      player.nextLevelExperience,
       white,
-    );
-
-    drawText(
-      50 + 2,
-      27,
-      player.experience + "/" + player.nextLevelExperience,
+      true,
       "#000",
-      left,
-      middle,
     );
 
     drawRect(0, 0, 50, 32, "#000");
@@ -1922,7 +1925,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     assignPlayer(playerType);
     Object.assign(manager, startingManagerState);
 
-    weaponCacheIndex++;
     manager.gameState = MANAGER_STATES.IN_PROGRESS;
     enemies.length = 0;
     pickups.length = 0;
@@ -2072,6 +2074,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       player.experience -= player.nextLevelExperience;
       player.nextLevelExperience += 10;
       player.levelUpTick = leveUpTimeout;
+      player.levelUpCount++;
 
       eachEnemy(75, (enemy, angle) => hitEnemy(enemy, 0, angle, 40));
 
@@ -2098,6 +2101,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           manager.gameState = MANAGER_STATES.PICKING_UPGRADE;
           manager.selIndex = 0;
           manager.selLength = manager.upgrades.length - 1;
+        }
+
+        player.levelUpCount--;
+
+        if (player.levelUpCount > 0) {
+          player.levelUpTick = leveUpTimeout * 0.5;
         }
       }
     }
