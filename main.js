@@ -43,6 +43,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const enemyStage3Color = "#0ac";
   const darkGray = "#999";
   const { entries, assign } = Object;
+  let scale = 0;
+  const setScale = (s) => (scale = s);
+  let usesTouch = false;
   // #endregion
 
   // #region Compressed libraries
@@ -351,7 +354,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     "p": false,
     aimAtX: 0,
     aimAtY: 0,
+    touched: false,
+    touchStartX: 0,
+    touchStartY: 0,
+    touchX: 0,
+    touchY: 0,
   };
+
+  const touchInputRadius = 60;
 
   /** @type {Partial<Record<keyof input, boolean>>} */
   let justPressedInput = {};
@@ -370,17 +380,44 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     }
   };
 
+  const canvasRelative = (event) => {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (event.clientX - rect.left) * (1 / scale),
+      y: (event.clientY - rect.top) * (1 / scale),
+    };
+  };
+
   onkeydown = processKeyEvent(true);
   onkeyup = processKeyEvent(false);
   onmousemove = (event) => {
-    const rect = canvas.getBoundingClientRect();
-    input.aimAtX = event.clientX - rect.left;
-    input.aimAtY = event.clientY - rect.top;
+    const relative = canvasRelative(event);
+    input.aimAtX = relative.x;
+    input.aimAtY = relative.y;
   };
   onblur = () => {
     if (manager.gameState === MANAGER_STATES.IN_PROGRESS) {
       manager.gameState = MANAGER_STATES.PAUSED;
     }
+  };
+  ontouchstart = (evt) => {
+    justPressedInput.e = true;
+    input.touched = true;
+    const relative = canvasRelative(evt.touches[0]);
+    input.touchStartX = relative.x;
+    input.touchStartY = relative.y;
+    usesTouch = true;
+    evt.preventDefault();
+  };
+  ontouchmove = (evt) => {
+    const relative = canvasRelative(evt.touches[0]);
+    input.touchX = relative.x;
+    input.touchY = relative.y;
+    evt.preventDefault();
+  };
+  ontouchend = (evt) => {
+    input.touched = false;
+    evt.preventDefault();
   };
 
   // #endregion
@@ -1579,6 +1616,27 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           ),
       );
     }
+
+    if (input.touched) {
+      drawCircle(
+        input.touchStartX,
+        input.touchStartY,
+        touchInputRadius,
+        "#3335",
+      );
+
+      const touchDx = input.touchX - input.touchStartX;
+      const touchDy = input.touchY - input.touchStartY;
+      const touchD = hypot(touchDx, touchDy);
+      const adjustedTouchD = Math.min(touchInputRadius, touchD);
+
+      drawCircle(
+        input.touchStartX + (touchDx / touchD) * adjustedTouchD,
+        input.touchStartY + (touchDy / touchD) * adjustedTouchD,
+        10,
+        "#666",
+      );
+    }
   };
 
   /**
@@ -2048,7 +2106,17 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     input.l && (moveX -= 1);
     input.r && (moveX += 1);
 
-    const speed = player.attrs.spd.val * deltaTime;
+    let speed = player.attrs.spd.val * deltaTime;
+
+    if (input.touched) {
+      const touchDx = input.touchX - input.touchStartX;
+      const touchDy = input.touchY - input.touchStartY;
+      const touchD = hypot(touchDx, touchDy);
+      moveX = touchDx;
+      moveY = touchDy;
+      speed = (Math.min(touchInputRadius, touchD) / touchInputRadius) * speed;
+    }
+
     const moveD = hypot(moveX, moveY);
 
     if (moveD > 0) {
@@ -2056,7 +2124,26 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       player.y += (moveY / moveD) * speed;
     }
 
-    player.meleeDirection = atan2(input.aimAtY - w2, input.aimAtX - h2);
+    if (usesTouch) {
+      /** @type {{ distance: number; enemy: Enemy | null }} */
+      const base = { distance: Infinity, enemy: null };
+      const closestEnemy = enemies.reduce((closest, enemy) => {
+        const dx = player.x - enemy.x;
+        const dy = player.y - enemy.y;
+        const distance = hypot(dx, dy);
+
+        return distance < closest.distance ? { distance, enemy } : closest;
+      }, base);
+
+      if (closestEnemy.enemy) {
+        player.meleeDirection = atan2(
+          closestEnemy.enemy.y - player.y,
+          closestEnemy.enemy.x - player.x,
+        );
+      }
+    } else {
+      player.meleeDirection = atan2(input.aimAtY - w2, input.aimAtX - h2);
+    }
 
     if (player.experience >= player.nextLevelExperience) {
       player.lvl += 1;
@@ -2193,5 +2280,5 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   target.appendChild(canvas);
   requestAnimationFrame(animationFrameTick);
 
-  return [player, manager];
+  return [canvas, player, manager, setScale];
 }
