@@ -406,8 +406,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     input.touched = true;
     justPressedInput.touched = true;
     const relative = canvasRelative(evt.touches[0]);
-    input.touchStartX = relative.x;
-    input.touchStartY = relative.y;
+    input.touchX = input.touchStartX = relative.x;
+    input.touchY = input.touchStartY = relative.y;
     usesTouch = true;
   };
   ontouchmove = (evt) => {
