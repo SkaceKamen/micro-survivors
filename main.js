@@ -158,13 +158,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     }
   };
 
-  /**
-   * @param {number} a
-   * @param {number} [b]
-   * @returns {number}
-   */
-  const optionalStatsDiff = (a, b) => (b ? b - a : a);
-
   // #endregion
 
   // #region Rendering functions
@@ -401,9 +394,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     }
   };
   ontouchstart = (evt) => {
+    const relative = canvasRelative(evt.touches[0]);
     input.touching = true;
     justPressedInput.touching = true;
-    const relative = canvasRelative(evt.touches[0]);
     input.touchX = input.touchStartX = relative.x;
     input.touchY = input.touchStartY = relative.y;
     usesTouch = true;
@@ -1625,7 +1618,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       const touchDx = input.touchX - input.touchStartX;
       const touchDy = input.touchY - input.touchStartY;
       const touchD = hypot(touchDx, touchDy);
-      const adjustedTouchD = Math.min(touchInputRadius, touchD);
+      const adjustedTouchD = min(touchInputRadius, touchD);
 
       drawCircle(
         input.touchStartX + (touchDx / touchD) * adjustedTouchD,
@@ -1699,11 +1692,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   const uiScreens = {
     [MANAGER_STATES.DEAD]() {
-      let y = 100;
+      drawText(w2, 100, "YOU'RE DEAD!", "#f88", center, top, 24);
 
-      drawText(w2, y, "YOU'RE DEAD!", "#f88", center, top, 24);
-
-      y = renderSurvivalStatsUi(50, y + 45, width - 100);
+      const y = renderSurvivalStatsUi(50, 145, width - 100);
       drawText(w2, y + 75, pressEnterToRestart, white, center);
     },
     [MANAGER_STATES.PAUSED]() {
@@ -1748,8 +1739,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         width - 40,
         40,
         (x, y, upgrade) => {
-          const alreadyApplied = upgradeCount(upgrade);
-
           drawText(x + 5, y + 5, upgrade.nam, white);
           drawText(
             x + 5,
@@ -1761,7 +1750,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           drawText(
             x + width - 50,
             y + 20,
-            alreadyApplied + "/" + (upgrade.maxCount ?? 5),
+            upgradeCount(upgrade) + "/" + (upgrade.maxCount ?? 5),
             lightGray,
             right,
             middle,
@@ -1792,11 +1781,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     [MANAGER_STATES.WON]() {
       drawText(w2, 100, "YOU WON", white, center, middle);
 
-      let y = 130;
-      y = renderSurvivalStatsUi(70, y, width - 140);
-      y += 30;
-
-      drawText(w2, y, pressEnterToRestart, white, center);
+      drawText(
+        w2,
+        renderSurvivalStatsUi(70, 130, width - 140) + 30,
+        pressEnterToRestart,
+        white,
+        center,
+      );
     },
   };
 
@@ -2097,7 +2088,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
             input.touchStartY < height - 50
           ) {
             startNewGame(playerTypes[manager.selIndex]);
-            zzfx(...audio.interactionClick);
           }
         }
 
@@ -2149,7 +2139,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       const touchD = hypot(touchDx, touchDy);
       moveX = touchDx;
       moveY = touchDy;
-      speed = (Math.min(touchInputRadius, touchD) / touchInputRadius) * speed;
+      speed = (min(touchInputRadius, touchD) / touchInputRadius) * speed;
     }
 
     const moveD = hypot(moveX, moveY);
@@ -2164,7 +2154,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         /**
          * @param {{distance: number, enemy: Enemy | null}} closest
          * @param {Enemy} enemy
-         * @returns
          */
         (closest, enemy) => {
           const distance = hypot(player.x - enemy.x, player.y - enemy.y);
