@@ -42,6 +42,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const enemyStage2Color = "#faa";
   const enemyStage3Color = "#0ac";
   const darkGray = "#999";
+  const { entries, assign } = Object;
   // #endregion
 
   // #region Compressed libraries
@@ -410,27 +411,17 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    */
   const fillLevels = (levels) => {
     let previous = levels[0];
-    /** @type {LevelType[]} */
-    let result = [levels[0]];
-    levels.forEach((level, i) => {
-      if (i === 0) return;
-
-      const desc = Object.entries(level)
+    return levels.map((level, i) => {
+      if (i === 0) return previous;
+      const desc = entries(level)
         .map(
           ([key, value]) =>
             `+${(weaponStatToFormatter[key] ?? fNumber)(value - previous[key])} ${weaponStatToLabel[key]}`,
         )
         .join(", ");
-
-      previous = {
-        ...previous,
-        ...level,
-      };
-
-      result[i] = { ...previous, desc };
+      previous = { ...previous, ...level };
+      return { ...previous, desc };
     });
-
-    return result;
   };
 
   let enemyHitSounds = 0;
@@ -552,9 +543,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     render(weapon, attrs) {
       const radius = attrs.radius * player.attrs.area.val;
 
-      eachOrb(attrs, weapon.tick, (orbX, orbY) => {
-        drawCircle(orbX, orbY, radius / 2, white);
-      });
+      eachOrb(attrs, weapon.tick, (orbX, orbY) =>
+        drawCircle(orbX, orbY, radius / 2, white),
+      );
     },
   };
 
@@ -595,8 +586,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       eachEnemy(attrs.area, (enemy, angle, dis) => {
         const offset = atan2((enemy.typ.radius ?? 5) / 2, dis);
-        let angleDiff = angle - player.meleeDirection;
-        angleDiff = abs(((angleDiff + PI) % PI2) - PI);
+        const angleDiff = abs(
+          ((angle - player.meleeDirection + PI) % PI2) - PI,
+        );
 
         if (angleDiff < coneA2 + offset) {
           hitEnemy(enemy, damage, angle);
@@ -810,7 +802,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       },
       // New weapons have smaller probability than weapon level ups
       wght: () =>
-        player.weapons.some((w) => w.typ === weapon) ? baseWeight : 25,
+        player.weapons.some((w) => w.typ === weapon) ? baseWeight : 15,
       maxCount: weapon.levels.length - 1,
     };
   };
@@ -1023,16 +1015,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {PlayerType} type
    * @returns
    */
-  const assignPlayer = (type) => Object.assign(player, createPlayer(type));
+  const assignPlayer = (type) => assign(player, createPlayer(type));
 
   // #region Enemies definition
-
-  /**
-   * @template T
-   * @template {keyof T} K
-   * @typedef {Partial<Pick<T, K>> & Omit<T, K>} WithOptional<T, K>
-   */
-
   /** @typedef {{ health: number; spd: number; damage: number; experience: number; boss?: boolean; pushBackResistance?: number; radius?: number; render: (x: number, y: number, hit: string | undefined) => void}} EnemyType */
 
   /**
@@ -1258,16 +1243,19 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     );
   };
 
+  /** @param {EnemyType} enemy */
+  const bossWave = (enemy) => () => pushEnemy(player.x, player.y, enemy);
+
   /**
-   * @typedef SpawnRate
+   * @typedef SpawnWave
    * @property {EnemyType[]} enemies
    * @property {number} [spawnRate]
    * @property {EnemyType} [boss]
    * @property {() => void} [wave]
    */
 
-  /** @type {SpawnRate[]} */
-  const spawnRates = [
+  /** @type {SpawnWave[]} */
+  const spawnWaves = [
     { enemies: [boxLevel1] },
     { enemies: [boxLevel1, triangleLevel1] },
     { enemies: [triangleLevel1, circleLevel1], boss: boxBoss },
@@ -1296,7 +1284,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   ];
 
   const finalBossAt = 600;
-  const waveTime = finalBossAt / (spawnRates.length - 1);
+  const waveTime = finalBossAt / (spawnWaves.length - 1);
 
   // #endregion
 
@@ -1444,16 +1432,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   };
 
   /**
-   * @param {string} value
-   */
-  const perLevel = (value) => `${value}/level`;
-
-  /**
    * @param {Player} player
    * @param {boolean} [includePerLevel]
    */
   const getPlayerStats = (player, includePerLevel) => {
-    const stats = Object.entries(player.attrs).map(([key, value]) => [
+    const stats = entries(player.attrs).map(([key, value]) => [
       statLabel[key],
       (statFormat[key] ?? fNumber)(value.val),
     ]);
@@ -1464,9 +1447,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       add([]);
 
       add(
-        ...Object.entries(player.typ.attrsWithLevel).map(([key, value]) => [
+        ...entries(player.typ.attrsWithLevel).map(([key, value]) => [
           statLabel[key],
-          perLevel(fNumber(abs(value), 2)),
+          fNumber(abs(value), 2) + "/level",
         ]),
       );
 
@@ -1478,7 +1461,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
       add(
         [`${name} level`, weapon.lvl + 1],
-        ...Object.entries(weapon.typ.levels[weapon.lvl])
+        ...entries(weapon.typ.levels[weapon.lvl])
           .filter(([l]) => !!weaponStatToLabel[l])
           .map(([l, v]) => [
             `${name} ${weaponStatToLabel[l]}`,
@@ -1583,11 +1566,18 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     drawText(w2, 35, formatTime(manager.gameRuntime), white, center);
 
     if (manager.gameRuntime < 20) {
-      let y = height - 30 - help().length * 15;
-      for (const text of help()) {
-        text && drawText(10, y, text, white, left, top);
-        y += 15;
-      }
+      help().map(
+        (text, i) =>
+          text &&
+          drawText(
+            10,
+            height - 30 - (help().length - i) * 15,
+            text,
+            white,
+            left,
+            top,
+          ),
+      );
     }
   };
 
@@ -1637,19 +1627,16 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     [MANAGER_STATES.DEAD]() {
       let y = 100;
 
-      drawOverlay();
       drawText(w2, y, "YOU'RE DEAD!", "#f88", center, top, 24);
 
       y = renderSurvivalStatsUi(50, y + 45, width - 100);
       drawText(w2, y + 75, pressEnterToRestart, white, center);
     },
     [MANAGER_STATES.PAUSED]() {
-      drawOverlay();
       drawTitleText(40, "PAUSED");
       renderPlayerStatsUi(20, 80, width - 40);
     },
     [MANAGER_STATES.PICKING_PLAYER]() {
-      drawOverlay();
       drawTitleText(10, "PICK CLASS");
 
       renderSelectable(
@@ -1674,7 +1661,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       );
     },
     [MANAGER_STATES.PICKING_UPGRADE]() {
-      drawOverlay();
       drawTitleText(10, "LEVEL UP");
 
       renderSelectable(
@@ -1708,7 +1694,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       renderPlayerStatsUi(20, 50 + 3 * 50 + 10, width - 40);
     },
     [MANAGER_STATES.START]() {
-      drawOverlay();
       drawText(w2, h2 - 40, "MICRO", white, center, "bottom", 68);
       drawText(w2, h2 - 40, "SURVIVORS", white, center, top, 38);
       drawText(
@@ -1726,7 +1711,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       setGlobalAlpha(1);
     },
     [MANAGER_STATES.WON]() {
-      drawOverlay();
       drawText(w2, 100, "YOU WON", white, center, middle);
 
       let y = 130;
@@ -1745,7 +1729,12 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       renderIngameUI();
     }
 
-    uiScreens[manager.gameState]?.();
+    const screen = uiScreens[manager.gameState];
+
+    if (screen) {
+      drawOverlay();
+      screen();
+    }
   };
 
   const renderOverlays = () => {
@@ -1923,7 +1912,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    */
   const startNewGame = (playerType) => {
     assignPlayer(playerType);
-    Object.assign(manager, startingManagerState);
+    assign(manager, startingManagerState);
 
     manager.gameState = MANAGER_STATES.IN_PROGRESS;
     enemies.length = 0;
@@ -1961,7 +1950,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         }
 
         const spawnRateIndex = floor(manager.gameRuntime / waveTime);
-        const spawnRate = spawnRates[spawnRateIndex];
+        const spawnRate = spawnWaves[spawnRateIndex];
 
         if (manager.gameRuntime > finalBossAt && enemies.length === 0) {
           manager.gameState = MANAGER_STATES.WON;
