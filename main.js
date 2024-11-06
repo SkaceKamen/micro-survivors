@@ -36,6 +36,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const left = "left";
   const right = "right";
   const middle = "middle";
+  const bottom = "bottom";
   const white = "#fff";
   const gray = "#aaa";
   const lightGray = "#ccc";
@@ -119,14 +120,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const fNumber2 = (n) => fNumber(n, 2);
 
   /**
-   * @param {number} x1
-   * @param {number} y1
-   * @param {number} x2
-   * @param {number} y2
-   */
-  const distance = (x1, y1, x2, y2) => hypot(x2 - x1, y2 - y1);
-
-  /**
    * @template A
    * @param {Array<A>} array
    * @param {number} count
@@ -158,6 +151,19 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     }
   };
 
+  /**
+   * @template T
+   * @param {T[]} array
+   * @param {number[]} indexes
+   */
+  const removeIndexes = (array, indexes) => {
+    let offset = 0;
+    for (const index of indexes) {
+      array.splice(index - offset, 1);
+      offset += 1;
+    }
+  };
+
   // #endregion
 
   // #region Rendering functions
@@ -172,11 +178,16 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {number} w
    * @param {number} h
    * @param {string | CanvasGradient} color
-   * @param {boolean} [stroke=false]
+   * @param {string} [border]
    */
-  const drawRect = (x, y, w, h, color, stroke) => {
-    ctx[stroke ? "strokeStyle" : "fillStyle"] = color;
-    ctx[stroke ? "strokeRect" : "fillRect"](x, y, w, h);
+  const drawRect = (x, y, w, h, color, border) => {
+    fillStyle(color);
+    ctx.fillRect(x, y, w, h);
+
+    if (border) {
+      ctx.strokeStyle = border;
+      ctx.strokeRect(x, y, w, h);
+    }
   };
 
   /**
@@ -359,6 +370,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   /** @type {Partial<Record<keyof input, boolean>>} */
   let justPressedInput = {};
 
+  /** @param {Event} evt */
+  const preventEventDefault = (evt) => evt.preventDefault();
+
   /**
    * @param {boolean} state
    * @returns {(event: KeyboardEvent) => void}
@@ -366,13 +380,18 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const processKeyEvent = (state) => (event) => {
     const mapped = inputMapping[event.which];
     if (mapped) {
-      event.preventDefault();
+      preventEventDefault(event);
       // @ts-expect-error mapped is a valid key
       input[mapped] = state;
       justPressedInput[mapped] = state;
     }
   };
 
+  /**
+   *
+   * @param {MouseEvent | Touch} event
+   * @returns
+   */
   const canvasRelative = (event) => {
     const rect = canvas.getBoundingClientRect();
     return {
@@ -393,35 +412,34 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       manager.gameState = MANAGER_STATES.PAUSED;
     }
   };
-  canvas.addEventListener(
-    "touchstart",
-    (evt) => {
-      const relative = canvasRelative(evt.touches[0]);
-      input.touching = true;
-      justPressedInput.touching = true;
-      input.touchX = input.touchStartX = relative.x;
-      input.touchY = input.touchStartY = relative.y;
-      usesTouch = true;
-      evt.stopPropagation();
-      evt.preventDefault();
-    },
-    { passive: false },
-  );
-  canvas.addEventListener(
-    "touchmove",
-    (evt) => {
-      const relative = canvasRelative(evt.touches[0]);
-      input.touchX = relative.x;
-      input.touchY = relative.y;
-      evt.stopPropagation();
-      evt.preventDefault();
-    },
-    { passive: false },
-  );
-  ontouchend = () => {
-    input.touching = false;
-  };
 
+  /**
+   *
+   * @template {keyof HTMLElementEventMap} TEvent
+   * @param {TEvent} eventName
+   * @param {(event: HTMLElementEventMap[TEvent]) => void} handler
+   */
+  const listen = (eventName, handler) =>
+    canvas.addEventListener(eventName, handler, { passive: false });
+
+  listen("touchstart", (evt) => {
+    const relative = canvasRelative(evt.touches[0]);
+    input.touching = true;
+    justPressedInput.touching = true;
+    input.touchX = input.touchStartX = relative.x;
+    input.touchY = input.touchStartY = relative.y;
+    usesTouch = true;
+    preventEventDefault(evt);
+  });
+
+  listen("touchmove", (evt) => {
+    const relative = canvasRelative(evt.touches[0]);
+    input.touchX = relative.x;
+    input.touchY = relative.y;
+    preventEventDefault(evt);
+  });
+
+  ontouchend = () => (input.touching = false);
   // #endregion
 
   // #region Weapons definition
@@ -1658,15 +1676,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         itemWidth,
         itemHeight,
         i === manager.selIndex ? "#333" : "#222",
-      );
-
-      drawRect(
-        x,
-        y,
-        itemWidth,
-        itemHeight,
         i === manager.selIndex ? "#aa3" : "#444",
-        true,
       );
 
       renderItem(x, y, item);
@@ -1705,9 +1715,13 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const uiScreens = {
     [MANAGER_STATES.DEAD]() {
       drawText(w2, 100, "YOU'RE DEAD!", "#f88", center, top, 24);
-
-      const y = renderSurvivalStatsUi(50, 145, width - 100);
-      drawText(w2, y + 75, pressEnterToRestart, white, center);
+      drawText(
+        w2,
+        renderSurvivalStatsUi(50, 145, width - 100) + 75,
+        pressEnterToRestart,
+        white,
+        center,
+      );
     },
     [MANAGER_STATES.PAUSED]() {
       drawTitleText(40, "PAUSED");
@@ -1774,17 +1788,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       renderPlayerStatsUi(20, 50 + 3 * 50 + 10, width - 40);
     },
     [MANAGER_STATES.START]() {
-      drawText(w2, h2 - 40, "MICRO", white, center, "bottom", 68);
+      drawText(w2, h2 - 40, "MICRO", white, center, bottom, 68);
       drawText(w2, h2 - 40, "SURVIVORS", white, center, top, 38);
-      drawText(
-        w2,
-        height - 5,
-        "by SkaceKamen",
-        lightGray,
-        center,
-        "bottom",
-        10,
-      );
 
       setGlobalAlpha(0.75 + cos((Date.now() / 1000) * 5) * 0.25);
       drawText(w2, h2 + 50, pressEnterToStart, white, center);
@@ -1966,11 +1971,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       index++;
     }
 
-    let offset = 0;
-    for (const index of enemiesToRemove) {
-      enemies.splice(index - offset, 1);
-      offset += 1;
-    }
+    removeIndexes(enemies, enemiesToRemove);
   };
 
   /**
@@ -2151,7 +2152,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       const touchD = hypot(touchDx, touchDy);
       moveX = touchDx;
       moveY = touchDy;
-      speed = (min(touchInputRadius, touchD) / touchInputRadius) * speed;
+      speed *= min(touchInputRadius, touchD) / touchInputRadius;
     }
 
     const moveD = hypot(moveX, moveY);
@@ -2190,12 +2191,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       player.nextLevelExperience += 10;
       player.levelUpTick = leveUpTimeout;
       player.levelUpCount++;
+      player.health += 5;
 
       eachEnemy(75, (enemy, angle) => hitEnemy(enemy, 0, angle, 40));
 
       zzfx(...audio.levelUp);
-
-      player.health += 5;
     }
 
     if (player.levelUpTick > 0) {
@@ -2226,13 +2226,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       }
     }
 
-    if (player.lastDamagedTick > 0) {
-      player.lastDamagedTick -= deltaTime;
-    }
-
-    if (player.lastPickupTick > 0) {
-      player.lastPickupTick -= deltaTime;
-    }
+    player.lastDamagedTick -= deltaTime;
+    player.lastPickupTick -= deltaTime;
 
     player.health = min(
       player.attrs.health.val,
@@ -2288,11 +2283,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       index++;
     }
 
-    let offset = 0;
-    for (const index of pickupsToRemove) {
-      pickups.splice(index - offset, 1);
-      offset += 1;
-    }
+    removeIndexes(pickups, pickupsToRemove);
   };
 
   // #endregion
