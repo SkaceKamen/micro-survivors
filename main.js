@@ -1734,10 +1734,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         20,
         50,
         100,
-        20,
+        30,
         (x, y, type) => {
-          type.render(x + 10, y + 10);
-          drawText(x + 20, y + 10, type.nam, white, left, middle);
+          type.render(x + 10, y + 15);
+          drawText(x + 20, y + 15, type.nam, white, left, middle);
         },
         playerTypes,
       );
@@ -2080,7 +2080,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         break;
 
       case MANAGER_STATES.PICKING_PLAYER:
-        processTouchSelectable(20, 50, 100, 20);
+        processTouchSelectable(20, 50, 100, 30);
         managerSelectionTick();
         const type = playerTypes[manager.selIndex];
 
