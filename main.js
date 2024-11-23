@@ -36,6 +36,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const left = "left";
   const right = "right";
   const middle = "middle";
+  const bottom = "bottom";
   const white = "#fff";
   const gray = "#aaa";
   const lightGray = "#ccc";
@@ -43,6 +44,9 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const enemyStage3Color = "#0ac";
   const darkGray = "#999";
   const { entries, assign } = Object;
+  let scale = 0;
+  const setScale = (s) => (scale = s);
+  let usesTouch = false;
   // #endregion
 
   // #region Compressed libraries
@@ -116,14 +120,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const fNumber2 = (n) => fNumber(n, 2);
 
   /**
-   * @param {number} x1
-   * @param {number} y1
-   * @param {number} x2
-   * @param {number} y2
-   */
-  const distance = (x1, y1, x2, y2) => hypot(x2 - x1, y2 - y1);
-
-  /**
    * @template A
    * @param {Array<A>} array
    * @param {number} count
@@ -156,11 +152,17 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   };
 
   /**
-   * @param {number} a
-   * @param {number} [b]
-   * @returns {number}
+   * @template T
+   * @param {T[]} array
+   * @param {number[]} indexes
    */
-  const optionalStatsDiff = (a, b) => (b ? b - a : a);
+  const removeIndexes = (array, indexes) => {
+    let offset = 0;
+    for (const index of indexes) {
+      array.splice(index - offset, 1);
+      offset += 1;
+    }
+  };
 
   // #endregion
 
@@ -176,11 +178,16 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {number} w
    * @param {number} h
    * @param {string | CanvasGradient} color
-   * @param {boolean} [stroke=false]
+   * @param {string} [border]
    */
-  const drawRect = (x, y, w, h, color, stroke) => {
-    ctx[stroke ? "strokeStyle" : "fillStyle"] = color;
-    ctx[stroke ? "strokeRect" : "fillRect"](x, y, w, h);
+  const drawRect = (x, y, w, h, color, border) => {
+    fillStyle(color);
+    ctx.fillRect(x, y, w, h);
+
+    if (border) {
+      ctx.strokeStyle = border;
+      ctx.strokeRect(x, y, w, h);
+    }
   };
 
   /**
@@ -351,10 +358,20 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     "p": false,
     aimAtX: 0,
     aimAtY: 0,
+    touching: false,
+    touchStartX: 0,
+    touchStartY: 0,
+    touchX: 0,
+    touchY: 0,
   };
+
+  const touchInputRadius = 60;
 
   /** @type {Partial<Record<keyof input, boolean>>} */
   let justPressedInput = {};
+
+  /** @param {Event} evt */
+  const preventEventDefault = (evt) => evt.preventDefault();
 
   /**
    * @param {boolean} state
@@ -363,19 +380,32 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const processKeyEvent = (state) => (event) => {
     const mapped = inputMapping[event.which];
     if (mapped) {
-      event.preventDefault();
+      preventEventDefault(event);
       // @ts-expect-error mapped is a valid key
       input[mapped] = state;
       justPressedInput[mapped] = state;
     }
   };
 
+  /**
+   *
+   * @param {MouseEvent | Touch} event
+   * @returns
+   */
+  const canvasRelative = (event) => {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (event.clientX - rect.left) * (1 / scale),
+      y: (event.clientY - rect.top) * (1 / scale),
+    };
+  };
+
   onkeydown = processKeyEvent(true);
   onkeyup = processKeyEvent(false);
   onmousemove = (event) => {
-    const rect = canvas.getBoundingClientRect();
-    input.aimAtX = event.clientX - rect.left;
-    input.aimAtY = event.clientY - rect.top;
+    const relative = canvasRelative(event);
+    input.aimAtX = relative.x;
+    input.aimAtY = relative.y;
   };
   onblur = () => {
     if (manager.gameState === MANAGER_STATES.IN_PROGRESS) {
@@ -383,6 +413,33 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     }
   };
 
+  /**
+   *
+   * @template {keyof HTMLElementEventMap} TEvent
+   * @param {TEvent} eventName
+   * @param {(event: HTMLElementEventMap[TEvent]) => void} handler
+   */
+  const listen = (eventName, handler) =>
+    canvas.addEventListener(eventName, handler, { passive: false });
+
+  listen("touchstart", (evt) => {
+    const relative = canvasRelative(evt.touches[0]);
+    input.touching = true;
+    justPressedInput.touching = true;
+    input.touchX = input.touchStartX = relative.x;
+    input.touchY = input.touchStartY = relative.y;
+    usesTouch = true;
+    preventEventDefault(evt);
+  });
+
+  listen("touchmove", (evt) => {
+    const relative = canvasRelative(evt.touches[0]);
+    input.touchX = relative.x;
+    input.touchY = relative.y;
+    preventEventDefault(evt);
+  });
+
+  ontouchend = () => (input.touching = false);
   // #endregion
 
   // #region Weapons definition
@@ -1579,6 +1636,27 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           ),
       );
     }
+
+    if (input.touching) {
+      drawCircle(
+        input.touchStartX,
+        input.touchStartY,
+        touchInputRadius,
+        "#3335",
+      );
+
+      const touchDx = input.touchX - input.touchStartX;
+      const touchDy = input.touchY - input.touchStartY;
+      const touchD = hypot(touchDx, touchDy);
+      const adjustedTouchD = min(touchInputRadius, touchD);
+
+      drawCircle(
+        input.touchStartX + (touchDx / touchD) * adjustedTouchD,
+        input.touchStartY + (touchDy / touchD) * adjustedTouchD,
+        10,
+        "#666",
+      );
+    }
   };
 
   /**
@@ -1591,30 +1669,41 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
    * @param {T[]} items
    */
   const renderSelectable = (x, y, itemWidth, itemHeight, renderItem, items) => {
-    for (let i = 0; i < items.length; i++) {
+    items.map((item, i) => {
       drawRect(
         x,
         y,
         itemWidth,
         itemHeight,
         i === manager.selIndex ? "#333" : "#222",
-      );
-
-      drawRect(
-        x,
-        y,
-        itemWidth,
-        itemHeight,
         i === manager.selIndex ? "#aa3" : "#444",
-        true,
       );
 
-      renderItem(x, y, items[i]);
+      renderItem(x, y, item);
 
       y += itemHeight + 5;
-    }
+    });
 
     return y;
+  };
+
+  /**
+   * @param {number} x
+   * @param {number} y
+   * @param {number} itemWidth
+   * @param {number} itemHeight
+   */
+  const processTouchSelectable = (x, y, itemWidth, itemHeight) => {
+    if (
+      justPressedInput.touching &&
+      input.touchX >= x &&
+      input.touchX <= x + itemWidth
+    ) {
+      const index = floor((input.touchStartY - y) / (itemHeight + 5));
+      if (index >= 0 && index <= manager.selLength) {
+        manager.selIndex = index;
+      }
+    }
   };
 
   /**
@@ -1625,12 +1714,14 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
 
   const uiScreens = {
     [MANAGER_STATES.DEAD]() {
-      let y = 100;
-
-      drawText(w2, y, "YOU'RE DEAD!", "#f88", center, top, 24);
-
-      y = renderSurvivalStatsUi(50, y + 45, width - 100);
-      drawText(w2, y + 75, pressEnterToRestart, white, center);
+      drawText(w2, 100, "YOU'RE DEAD!", "#f88", center, top, 24);
+      drawText(
+        w2,
+        renderSurvivalStatsUi(50, 145, width - 100) + 75,
+        pressEnterToRestart,
+        white,
+        center,
+      );
     },
     [MANAGER_STATES.PAUSED]() {
       drawTitleText(40, "PAUSED");
@@ -1643,10 +1734,10 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         20,
         50,
         100,
-        20,
+        30,
         (x, y, type) => {
-          type.render(x + 10, y + 10);
-          drawText(x + 20, y + 10, type.nam, white, left, middle);
+          type.render(x + 10, y + 15);
+          drawText(x + 20, y + 15, type.nam, white, left, middle);
         },
         playerTypes,
       );
@@ -1659,6 +1750,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         getPlayerStats(player, true),
         false,
       );
+
+      if (usesTouch) {
+        drawRect(20, height - 80, 100, 30, "#333");
+        drawText(70, height - 65, "START", white, center, middle);
+      }
     },
     [MANAGER_STATES.PICKING_UPGRADE]() {
       drawTitleText(10, "LEVEL UP");
@@ -1669,8 +1765,6 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         width - 40,
         40,
         (x, y, upgrade) => {
-          const alreadyApplied = upgradeCount(upgrade);
-
           drawText(x + 5, y + 5, upgrade.nam, white);
           drawText(
             x + 5,
@@ -1682,7 +1776,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           drawText(
             x + width - 50,
             y + 20,
-            alreadyApplied + "/" + (upgrade.maxCount ?? 5),
+            upgradeCount(upgrade) + "/" + (upgrade.maxCount ?? 5),
             lightGray,
             right,
             middle,
@@ -1694,30 +1788,23 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       renderPlayerStatsUi(20, 50 + 3 * 50 + 10, width - 40);
     },
     [MANAGER_STATES.START]() {
-      drawText(w2, h2 - 40, "MICRO", white, center, "bottom", 68);
+      drawText(w2, h2 - 40, "MICRO", white, center, bottom, 68);
       drawText(w2, h2 - 40, "SURVIVORS", white, center, top, 38);
-      drawText(
-        w2,
-        height - 5,
-        "by SkaceKamen",
-        lightGray,
-        center,
-        "bottom",
-        10,
-      );
 
-      setGlobalAlpha(0.75 + cos((performance.now() / 1000) * 5) * 0.25);
+      setGlobalAlpha(0.75 + cos((Date.now() / 1000) * 5) * 0.25);
       drawText(w2, h2 + 50, pressEnterToStart, white, center);
       setGlobalAlpha(1);
     },
     [MANAGER_STATES.WON]() {
       drawText(w2, 100, "YOU WON", white, center, middle);
 
-      let y = 130;
-      y = renderSurvivalStatsUi(70, y, width - 140);
-      y += 30;
-
-      drawText(w2, y, pressEnterToRestart, white, center);
+      drawText(
+        w2,
+        renderSurvivalStatsUi(70, 130, width - 140) + 30,
+        pressEnterToRestart,
+        white,
+        center,
+      );
     },
   };
 
@@ -1884,11 +1971,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       index++;
     }
 
-    let offset = 0;
-    for (const index of enemiesToRemove) {
-      enemies.splice(index - offset, 1);
-      offset += 1;
-    }
+    removeIndexes(enemies, enemiesToRemove);
   };
 
   /**
@@ -1985,7 +2068,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       case MANAGER_STATES.WON:
       case MANAGER_STATES.DEAD:
       case MANAGER_STATES.START:
-        if (input.e) {
+        if (input.e || justPressedInput.touching) {
           manager.selIndex = 0;
           manager.selLength = playerTypes.length - 1;
           assignPlayer(playerTypes[0]);
@@ -1997,6 +2080,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
         break;
 
       case MANAGER_STATES.PICKING_PLAYER:
+        processTouchSelectable(20, 50, 100, 30);
         managerSelectionTick();
         const type = playerTypes[manager.selIndex];
 
@@ -2009,12 +2093,24 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
           zzfx(...audio.interactionClick);
         }
 
+        if (justPressedInput.touching) {
+          if (
+            input.touchStartX >= 20 &&
+            input.touchStartX <= 120 &&
+            input.touchStartY > height - 80 &&
+            input.touchStartY < height - 50
+          ) {
+            startNewGame(playerTypes[manager.selIndex]);
+          }
+        }
+
         break;
 
       case MANAGER_STATES.PICKING_UPGRADE:
+        processTouchSelectable(20, 50, width - 40, 40);
         managerSelectionTick();
 
-        if (justPressedInput.e) {
+        if (justPressedInput.e || justPressedInput.touching) {
           const upgrade = manager.upgrades[manager.selIndex];
           upgrade.use();
           player.upgrades.push(upgrade);
@@ -2048,7 +2144,17 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
     input.l && (moveX -= 1);
     input.r && (moveX += 1);
 
-    const speed = player.attrs.spd.val * deltaTime;
+    let speed = player.attrs.spd.val * deltaTime;
+
+    if (input.touching) {
+      const touchDx = input.touchX - input.touchStartX;
+      const touchDy = input.touchY - input.touchStartY;
+      const touchD = hypot(touchDx, touchDy);
+      moveX = touchDx;
+      moveY = touchDy;
+      speed *= min(touchInputRadius, touchD) / touchInputRadius;
+    }
+
     const moveD = hypot(moveX, moveY);
 
     if (moveD > 0) {
@@ -2056,7 +2162,28 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       player.y += (moveY / moveD) * speed;
     }
 
-    player.meleeDirection = atan2(input.aimAtY - w2, input.aimAtX - h2);
+    if (usesTouch) {
+      const closestEnemy = enemies.reduce(
+        /**
+         * @param {{distance: number, enemy: Enemy | null}} closest
+         * @param {Enemy} enemy
+         */
+        (closest, enemy) => {
+          const distance = hypot(player.x - enemy.x, player.y - enemy.y);
+          return distance < closest.distance ? { distance, enemy } : closest;
+        },
+        { distance: Infinity, enemy: null },
+      );
+
+      if (closestEnemy.enemy) {
+        player.meleeDirection = atan2(
+          closestEnemy.enemy.y - player.y,
+          closestEnemy.enemy.x - player.x,
+        );
+      }
+    } else {
+      player.meleeDirection = atan2(input.aimAtY - w2, input.aimAtX - h2);
+    }
 
     if (player.experience >= player.nextLevelExperience) {
       player.lvl += 1;
@@ -2064,12 +2191,11 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       player.nextLevelExperience += 10;
       player.levelUpTick = leveUpTimeout;
       player.levelUpCount++;
+      player.health += 5;
 
       eachEnemy(75, (enemy, angle) => hitEnemy(enemy, 0, angle, 40));
 
       zzfx(...audio.levelUp);
-
-      player.health += 5;
     }
 
     if (player.levelUpTick > 0) {
@@ -2100,13 +2226,8 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       }
     }
 
-    if (player.lastDamagedTick > 0) {
-      player.lastDamagedTick -= deltaTime;
-    }
-
-    if (player.lastPickupTick > 0) {
-      player.lastPickupTick -= deltaTime;
-    }
+    player.lastDamagedTick -= deltaTime;
+    player.lastPickupTick -= deltaTime;
 
     player.health = min(
       player.attrs.health.val,
@@ -2162,11 +2283,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
       index++;
     }
 
-    let offset = 0;
-    for (const index of pickupsToRemove) {
-      pickups.splice(index - offset, 1);
-      offset += 1;
-    }
+    removeIndexes(pickups, pickupsToRemove);
   };
 
   // #endregion
@@ -2193,5 +2310,5 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   target.appendChild(canvas);
   requestAnimationFrame(animationFrameTick);
 
-  return [player, manager];
+  return [canvas, player, manager, setScale];
 }
