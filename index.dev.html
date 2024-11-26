@@ -33,17 +33,18 @@
       const viewWidth = window.innerWidth;
       const viewHeight = window.innerHeight;
 
-      if (viewWidth < 800 || viewHeight < 800) {
-        const scale = Math.min(
-          viewWidth / canvas.width,
-          viewHeight / canvas.height,
-        );
+      let scale;
 
-        canvas.style.transform = `scale(${scale})`;
-        canvas.style.transformOrigin = "top left";
-
-        setScale(scale);
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        scale = Math.min(viewWidth / canvas.width, viewHeight / canvas.height);
+      } else {
+        scale = 1;
       }
+
+      canvas.style.transform = `scale(${scale})`;
+      canvas.style.transformOrigin = "top left";
+
+      setScale(scale);
 
       window.DEBUG = {
         player,
