@@ -44,7 +44,7 @@ function microSurvivors(target = document.body, width = 400, height = 400) {
   const enemyStage3Color = "#0ac";
   const darkGray = "#999";
   const { entries, assign } = Object;
-  let scale = 0;
+  let scale = 1;
   const setScale = (s) => (scale = s);
   let usesTouch = false;
   // #endregion
